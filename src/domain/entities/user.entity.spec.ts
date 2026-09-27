@@ -28,8 +28,37 @@ describe('user Entity', () => {
     expect(user.password).toBe('hashed-password')
     expect(user.isEmailVerified).toBe(false)
     expect(user.emailVerificationKey).toBe('verify-123')
+    expect(user.roles).toEqual(['user'])
     expect(user.createdAt).toEqual(new Date('2023-01-01'))
     expect(user.updatedAt).toEqual(new Date('2023-01-02'))
+  })
+
+  it('should instantiate a user with custom roles', () => {
+    const user = new User({
+      name: 'Admin User',
+      email: 'admin@example.com',
+      username: 'adminuser',
+      password: 'hashed-password',
+      roles: ['admin', 'manager'],
+    })
+
+    expect(user.roles).toEqual(['admin', 'manager'])
+    expect(user.hasRole('admin')).toBe(true)
+    expect(user.hasRole('manager')).toBe(true)
+    expect(user.hasRole('user')).toBe(false)
+  })
+
+  it('should default roles to ["user"] if empty array is passed', () => {
+    const user = new User({
+      name: 'Normal User',
+      email: 'normal@example.com',
+      username: 'normaluser',
+      password: 'hashed-password',
+      roles: [],
+    })
+
+    expect(user.roles).toEqual(['user'])
+    expect(user.hasRole('user')).toBe(true)
   })
 
   it('should update profile fields', () => {
@@ -121,6 +150,7 @@ describe('user Entity', () => {
       email: 'john@example.com',
       username: 'john',
       isEmailVerified: false,
+      roles: ['user'],
     })
   })
 

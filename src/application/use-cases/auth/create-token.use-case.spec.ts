@@ -78,6 +78,7 @@ describe(CreateTokenUseCase.name, () => {
     expect(tokenProvider.generate).toHaveBeenCalledWith({
       iss: 'users-service',
       sub: 'u1',
+      roles: ['user'],
     })
     expect(result.accessToken).toBe('mocked.jwt.token')
     expect(result.refreshToken).toBeTypeOf('string')

@@ -22,6 +22,7 @@ export class CreateUserUseCase {
       username: xss(request.username),
       password: hashedPassword,
       emailVerificationKey: crypto.randomUUID(),
+      roles: request.roles ? [...request.roles] : undefined,
     })
 
     const createdUser = await this.userRepository.create(user)

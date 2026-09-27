@@ -34,6 +34,7 @@ export class CreateTokenUseCase {
     const accessToken = this.tokenProvider.generate({
       iss: 'users-service',
       sub: user.id,
+      roles: user.roles,
     })
 
     const refreshTokenString = crypto.randomBytes(40).toString('hex')

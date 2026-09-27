@@ -1,6 +1,7 @@
 import type http from 'node:http'
 import mongoose from 'mongoose'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { stopGrpcServer } from '../infrastructure/grpc/server'
 import cooldown from './cooldown'
 import { logger } from './logger'
 
@@ -8,6 +9,10 @@ vi.mock('mongoose', () => ({
   default: {
     disconnect: vi.fn().mockResolvedValue(undefined),
   },
+}))
+
+vi.mock('../infrastructure/grpc/server', () => ({
+  stopGrpcServer: vi.fn().mockResolvedValue(undefined),
 }))
 
 vi.mock('./logger', () => ({
@@ -80,5 +85,21 @@ describe('cooldown', () => {
     expect(mongoose.disconnect).toHaveBeenCalled()
     expect(logger.error).toHaveBeenCalledWith(error)
     expect(processExitSpy).not.toHaveBeenCalled()
+  })
+
+  it('should stop grpcServer if provided on close', async () => {
+    const mockGrpcServer = {} as any
+
+    cooldown({ server: mockServer as http.Server, grpcServer: mockGrpcServer })
+
+    const sigtermCall = processOnSpy.mock.calls.find((call: any[]) => call[0] === 'SIGTERM')
+    const sigtermHandler = sigtermCall[1]
+
+    sigtermHandler()
+
+    expect(mockServer.close).toHaveBeenCalled()
+    await new Promise(process.nextTick)
+
+    expect(stopGrpcServer).toHaveBeenCalledWith(mockGrpcServer)
   })
 })

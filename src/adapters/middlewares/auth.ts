@@ -3,6 +3,18 @@ import jwt from 'jsonwebtoken'
 
 import { configuration } from '../../config'
 
+declare global {
+  // eslint-disable-next-line ts/no-namespace
+  namespace Express {
+    interface Request {
+      user?: {
+        id: string
+        roles: string[]
+      }
+    }
+  }
+}
+
 const TOKEN_SECRET = configuration.auth.jwtSecret
 
 function auth({ onlyTheOwner = false } = {}) {
@@ -22,7 +34,13 @@ function auth({ onlyTheOwner = false } = {}) {
     const [, token] = authorization.split(' ')
 
     try {
-      const { sub } = jwt.verify(token, TOKEN_SECRET)
+      const decoded = jwt.verify(token, TOKEN_SECRET) as { sub?: string, roles?: string[], [key: string]: unknown }
+      const { sub, roles } = decoded
+
+      request.user = {
+        id: sub as string,
+        roles: roles ?? [],
+      }
 
       const { id } = request.params
 

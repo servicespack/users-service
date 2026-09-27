@@ -74,6 +74,7 @@ export class MongooseUserRepository implements IUserRepository {
     doc.password = user.password
     doc.isEmailVerified = user.isEmailVerified
     doc.emailVerificationKey = user.emailVerificationKey
+    doc.roles = user.roles
     doc.passwordResetToken = user.passwordResetToken
     doc.passwordResetExpiresAt = user.passwordResetExpiresAt
 

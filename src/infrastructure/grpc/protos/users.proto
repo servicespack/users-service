@@ -1,0 +1,37 @@
+syntax = "proto3";
+
+package users.v1;
+
+service UserService {
+  rpc GetUserById (GetUserByIdRequest) returns (UserResponse);
+  rpc ListUsers (ListUsersRequest) returns (ListUsersResponse);
+}
+
+message GetUserByIdRequest {
+  string id = 1;
+}
+
+message ListUsersRequest {
+  int32 page = 1;
+  int32 size = 2;
+  string search = 3;
+}
+
+message UserResponse {
+  string id = 1;
+  string name = 2;
+  string email = 3;
+  string username = 4;
+  bool is_email_verified = 5;
+  repeated string roles = 6;
+  string created_at = 7;
+  string updated_at = 8;
+}
+
+message ListUsersResponse {
+  repeated UserResponse users = 1;
+  int32 total = 2;
+  int32 page = 3;
+  int32 size = 4;
+  int32 pages = 5;
+}

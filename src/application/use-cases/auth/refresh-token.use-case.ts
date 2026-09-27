@@ -1,4 +1,5 @@
 import type { IRefreshTokenRepository } from '../../../domain/repositories/refresh-token.repository.interface'
+import type { IUserRepository } from '../../../domain/repositories/user.repository.interface'
 import type { ITokenProvider } from '../../ports/token-provider.port'
 import crypto from 'node:crypto'
 import { RefreshToken } from '../../../domain/entities/refresh-token.entity'
@@ -17,6 +18,7 @@ export class RefreshTokenUseCase {
   constructor(
     private readonly refreshTokenRepository: IRefreshTokenRepository,
     private readonly tokenProvider: ITokenProvider,
+    private readonly userRepository?: IUserRepository,
   ) {}
 
   async execute(request: RefreshTokenRequest): Promise<RefreshTokenResponse> {
@@ -26,15 +28,21 @@ export class RefreshTokenUseCase {
       throw new InvalidTokenError()
     }
 
+    const userId = existingToken.userId
+    const user = this.userRepository ? await this.userRepository.findById(userId) : null
+
+    if (this.userRepository && !user) {
+      throw new InvalidTokenError()
+    }
+
     // Revoke the old token (Rolling Refresh Tokens)
     existingToken.revoke()
     await this.refreshTokenRepository.update(existingToken)
 
-    const userId = existingToken.userId
-
     const accessToken = this.tokenProvider.generate({
       iss: 'users-service',
       sub: userId,
+      ...(user ? { roles: user.roles } : {}),
     })
 
     const newRefreshTokenString = crypto.randomBytes(40).toString('hex')

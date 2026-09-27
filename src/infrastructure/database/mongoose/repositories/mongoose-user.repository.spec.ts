@@ -40,4 +40,37 @@ describe(MongooseUserRepository.name, () => {
 
     await expect(repository.update(user)).rejects.toThrow(UserNotFoundError)
   })
+
+  it('should update user roles and save', async () => {
+    const mockDoc = {
+      id: 'user-id-1',
+      name: 'name',
+      username: 'username',
+      email: 'email@example.com',
+      password: 'password',
+      isEmailVerified: true,
+      emailVerificationKey: '',
+      roles: ['user'],
+      passwordResetToken: undefined,
+      passwordResetExpiresAt: undefined,
+      save: vi.fn().mockResolvedValue(undefined),
+    }
+    const mockModel = {
+      findById: vi.fn().mockResolvedValue(mockDoc),
+    } as any
+    const repository = new MongooseUserRepository(mockModel)
+    const user = new User({
+      id: 'user-id-1',
+      name: 'name',
+      username: 'username',
+      email: 'email@example.com',
+      password: 'password',
+      roles: ['admin', 'user'],
+    })
+
+    const updated = await repository.update(user)
+    expect(mockDoc.roles).toEqual(['admin', 'user'])
+    expect(mockDoc.save).toHaveBeenCalled()
+    expect(updated.roles).toEqual(['admin', 'user'])
+  })
 })

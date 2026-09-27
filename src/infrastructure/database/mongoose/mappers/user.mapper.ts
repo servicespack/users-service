@@ -13,6 +13,7 @@ export class UserMapper {
       password: doc.password,
       isEmailVerified: doc.isEmailVerified,
       emailVerificationKey: doc.emailVerificationKey,
+      roles: doc.roles,
       passwordResetToken: doc.passwordResetToken,
       passwordResetExpiresAt: doc.passwordResetExpiresAt,
       createdAt: doc.createdAt,
@@ -28,6 +29,7 @@ export class UserMapper {
       password: user.password,
       isEmailVerified: user.isEmailVerified,
       emailVerificationKey: user.emailVerificationKey,
+      roles: user.roles,
       passwordResetToken: user.passwordResetToken,
       passwordResetExpiresAt: user.passwordResetExpiresAt,
     }

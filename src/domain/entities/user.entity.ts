@@ -15,6 +15,7 @@ export interface UserProps {
   emailVerificationKey?: string
   passwordResetToken?: string
   passwordResetExpiresAt?: Date
+  roles?: string[]
   createdAt?: Date
   updatedAt?: Date
 }
@@ -29,6 +30,7 @@ export class User {
   private _emailVerificationKey: string
   private _passwordResetToken?: string
   private _passwordResetExpiresAt?: Date
+  private _roles: string[]
   private readonly _createdAt?: Date
   private readonly _updatedAt?: Date
 
@@ -42,6 +44,7 @@ export class User {
     this._emailVerificationKey = props.emailVerificationKey ?? ''
     this._passwordResetToken = props.passwordResetToken
     this._passwordResetExpiresAt = props.passwordResetExpiresAt
+    this._roles = props.roles && props.roles.length > 0 ? [...props.roles] : ['user']
     this._createdAt = props.createdAt
     this._updatedAt = props.updatedAt
   }
@@ -88,6 +91,14 @@ export class User {
 
   get updatedAt(): Date | undefined {
     return this._updatedAt
+  }
+
+  get roles(): string[] {
+    return [...this._roles]
+  }
+
+  hasRole(role: string): boolean {
+    return this._roles.includes(role)
   }
 
   updateProfile(props: { name?: string, email?: string, username?: string }): void {
@@ -141,6 +152,7 @@ export class User {
       email: this._email,
       username: this._username,
       isEmailVerified: this._isEmailVerified,
+      roles: this.roles,
     }
   }
 }

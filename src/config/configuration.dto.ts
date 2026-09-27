@@ -16,9 +16,17 @@ export class ConfigurationServersHttpDto {
   port!: string
 }
 
+export class ConfigurationServersGrpcDto {
+  @IsPort()
+  port!: string
+}
+
 export class ConfigurationServersDto {
   @Type(() => ConfigurationServersHttpDto)
   @ValidateNested() http!: ConfigurationServersHttpDto
+
+  @Type(() => ConfigurationServersGrpcDto)
+  @ValidateNested() grpc!: ConfigurationServersGrpcDto
 }
 
 export class ConfigurationAuthDto {

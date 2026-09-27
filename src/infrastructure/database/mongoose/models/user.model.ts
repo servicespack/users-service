@@ -8,6 +8,7 @@ export interface IUserDoc extends Document {
   isEmailVerified: boolean
   username: string
   password: string
+  roles: string[]
   passwordResetToken?: string
   passwordResetExpiresAt?: Date
   createdAt: Date
@@ -22,6 +23,7 @@ export const userSchema = new Schema<IUserDoc>(
     isEmailVerified: { type: Boolean, default: false },
     username: { type: String, required: true, unique: true, lowercase: true, trim: true },
     password: { type: String, required: true },
+    roles: { type: [String], default: ['user'] },
     passwordResetToken: { type: String, default: null },
     passwordResetExpiresAt: { type: Date, default: null },
   },
@@ -66,6 +68,7 @@ export const userValidationRules = {
       isEmailVerified: { bsonType: 'bool' },
       username: { bsonType: 'string', description: 'must be a string and is required' },
       password: { bsonType: 'string', description: 'must be a string and is required' },
+      roles: { bsonType: 'array', items: { bsonType: 'string' } },
       passwordResetToken: { bsonType: ['string', 'null'] },
       passwordResetExpiresAt: { bsonType: ['date', 'null'] },
     },

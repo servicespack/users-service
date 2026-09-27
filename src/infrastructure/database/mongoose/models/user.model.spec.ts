@@ -15,6 +15,7 @@ describe('userModel transformations', () => {
       email: 'test@example.com',
       password: 'hashed-password',
       emailVerificationKey: 'key',
+      roles: ['user'],
       createdAt: new Date(),
       updatedAt: new Date(),
     }
@@ -25,6 +26,7 @@ describe('userModel transformations', () => {
       id: mockId.toHexString(),
       name: 'Test User',
       email: 'test@example.com',
+      roles: ['user'],
     })
     expect((ret as any)._id).toBeUndefined()
     expect((ret as any).__v).toBeUndefined()
@@ -73,5 +75,9 @@ describe('userModel transformations', () => {
     expect(emailPath.options.trim).toBe(true)
     expect(usernamePath.options.lowercase).toBe(true)
     expect(usernamePath.options.trim).toBe(true)
+
+    const rolesPath = userSchema.path('roles') as any
+    const defaultVal = typeof rolesPath.defaultValue === 'function' ? rolesPath.defaultValue() : rolesPath.defaultValue
+    expect(defaultVal).toEqual(['user'])
   })
 })

@@ -20,20 +20,36 @@ describe('users (e2e)', () => {
   const user = mockUser()
 
   it('should create an user', async () => {
-    await supertest(server)
+    const { body } = await supertest(server)
       .post('/api/users')
       .send(user)
       .expect('Content-Type', /json/)
       .expect(201)
 
-    const { body } = await supertest(server)
+    expect(body.roles).toEqual(['user'])
+
+    const { body: tokenBody } = await supertest(server)
       .post('/api/tokens')
       .send({
         username: user.username,
         password: user.password,
       })
 
-    token = body.Authorization
+    token = tokenBody.Authorization
+  })
+
+  it('should create an user with custom roles', async () => {
+    const adminUser = {
+      ...mockUser(),
+      roles: ['admin'],
+    }
+
+    const { body } = await supertest(server)
+      .post('/api/users')
+      .send(adminUser)
+      .expect(201)
+
+    expect(body.roles).toEqual(['admin'])
   })
 
   it('should not create user with duplicate email/username (409 Conflict)', async () => {
@@ -107,6 +123,7 @@ describe('users (e2e)', () => {
       name: user.name,
       email: user.email.toLowerCase(),
       username: user.username.toLowerCase(),
+      roles: ['user'],
     })
   })
 

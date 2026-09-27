@@ -4,6 +4,7 @@ import { ConfigurationDto } from './configuration.dto'
 const {
   DATABASE_URI,
   HTTP_SERVER_PORT,
+  GRPC_SERVER_PORT,
   NODE_ENV,
   NOTIFICATIONS_API_URL,
   TOKEN_SECRET,
@@ -18,6 +19,9 @@ const configuration = plainToInstance(ConfigurationDto, {
   servers: {
     http: {
       port: HTTP_SERVER_PORT || '3000',
+    },
+    grpc: {
+      port: GRPC_SERVER_PORT || '50051',
     },
   },
   auth: {

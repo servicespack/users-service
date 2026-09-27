@@ -59,6 +59,25 @@ describe('users Use Cases', () => {
       expect(result).toBe(createdMockUser)
     })
 
+    it('should pass roles to user if provided', async () => {
+      const useCase = new CreateUserUseCase(userRepository, passwordHasher)
+      let savedUser: User | undefined
+      vi.mocked(userRepository.create).mockImplementation(async (u) => {
+        savedUser = u
+        return u
+      })
+
+      await useCase.execute({
+        name: 'Admin User',
+        email: 'admin@example.com',
+        username: 'adminuser',
+        password: 'raw-password',
+        roles: ['admin', 'user'],
+      })
+
+      expect(savedUser?.roles).toEqual(['admin', 'user'])
+    })
+
     it('should call notificationSender.sendEmail when notificationSender is provided', async () => {
       const notificationSender = {
         sendEmail: vi.fn().mockResolvedValue(undefined),

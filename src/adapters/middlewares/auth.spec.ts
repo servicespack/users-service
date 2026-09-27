@@ -38,12 +38,16 @@ describe('auth Middleware', () => {
 
   it('should call next if token is valid', async () => {
     mockRequest.headers = { authorization: 'Bearer valid-token' }
-    vi.mocked(jwt.verify).mockReturnValue({ sub: 'user-id' } as any)
+    vi.mocked(jwt.verify).mockReturnValue({ sub: 'user-id', roles: ['admin'] } as any)
 
     const middleware = auth()
     await middleware(mockRequest as Request, mockResponse as Response, nextFunction)
 
     expect(nextFunction).toHaveBeenCalled()
+    expect(mockRequest.user).toEqual({
+      id: 'user-id',
+      roles: ['admin'],
+    })
   })
 
   it('should return 401 if onlyTheOwner is true and sub !== id', async () => {

@@ -798,8 +798,16 @@ export const swaggerDocument = {
             description: 'Indicates whether the email address has been verified',
             example: false,
           },
+          roles: {
+            type: 'array',
+            items: {
+              type: 'string',
+            },
+            description: 'Assigned roles for access control',
+            example: ['user'],
+          },
         },
-        required: ['id', 'name', 'email', 'username', 'isEmailVerified'],
+        required: ['id', 'name', 'email', 'username', 'isEmailVerified', 'roles'],
       },
       CreateUserDto: {
         type: 'object',
@@ -826,6 +834,14 @@ export const swaggerDocument = {
             minLength: 8,
             description: 'Password (minimum 8 characters)',
             example: 'securePassword123',
+          },
+          roles: {
+            type: 'array',
+            items: {
+              type: 'string',
+            },
+            description: 'Optional roles assigned to the user',
+            example: ['user'],
           },
         },
         required: ['name', 'username', 'email', 'password'],
