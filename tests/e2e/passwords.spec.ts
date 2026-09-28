@@ -5,10 +5,12 @@ import {
   describe,
   expect,
   it,
+  vi,
 } from 'vitest'
 
 import { UserModel } from '../../src/infrastructure/database/mongoose/models/user.model'
 import { server } from '../../src/infrastructure/http/server'
+import { HttpNotificationSender } from '../../src/infrastructure/notifications/http-notification-sender'
 import { mockUser } from '../__mocks__/user'
 
 describe('passwords (e2e)', () => {
@@ -69,6 +71,7 @@ describe('passwords (e2e)', () => {
   describe('post /api/auth/reset-password', () => {
     it('should successfully reset password with valid token', async () => {
       const user = mockUser()
+      const sendEmailSpy = vi.spyOn(HttpNotificationSender.prototype, 'sendEmail')
 
       await supertest(server)
         .post('/api/users')
@@ -81,7 +84,13 @@ describe('passwords (e2e)', () => {
         .expect(200)
 
       const dbUser = await UserModel.findOne({ email: user.email })
-      const resetToken = dbUser!.passwordResetToken!
+
+      expect(sendEmailSpy).toHaveBeenCalled()
+      const lastCall = sendEmailSpy.mock.calls[sendEmailSpy.mock.calls.length - 1]
+      const resetToken = lastCall[0].variables.token
+
+      const { User } = await import('../../src/domain/entities/user.entity')
+      expect(dbUser?.passwordResetToken).toBe(User.hashToken(resetToken))
 
       const newPassword = faker.internet.password({ length: 12 })
 
@@ -119,6 +128,8 @@ describe('passwords (e2e)', () => {
       const updatedDbUser = await UserModel.findOne({ email: user.email })
       expect(updatedDbUser?.passwordResetToken).toBeFalsy()
       expect(updatedDbUser?.passwordResetExpiresAt).toBeFalsy()
+
+      sendEmailSpy.mockRestore()
     })
 
     it('should return 400 when token is invalid', async () => {
@@ -133,6 +144,7 @@ describe('passwords (e2e)', () => {
 
     it('should return 400 when token is expired', async () => {
       const user = mockUser()
+      const sendEmailSpy = vi.spyOn(HttpNotificationSender.prototype, 'sendEmail')
 
       await supertest(server)
         .post('/api/users')
@@ -144,8 +156,9 @@ describe('passwords (e2e)', () => {
         .send({ email: user.email })
         .expect(200)
 
-      const dbUser = await UserModel.findOne({ email: user.email })
-      const resetToken = dbUser!.passwordResetToken!
+      expect(sendEmailSpy).toHaveBeenCalled()
+      const lastCall = sendEmailSpy.mock.calls[sendEmailSpy.mock.calls.length - 1]
+      const resetToken = lastCall[0].variables.token
 
       // Manually expire token in database
       await UserModel.updateOne(
@@ -160,6 +173,8 @@ describe('passwords (e2e)', () => {
           password: 'newValidPassword123',
         })
         .expect(400)
+
+      sendEmailSpy.mockRestore()
     })
 
     it('should return 400 when password is too short (< 8 characters)', async () => {

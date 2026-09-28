@@ -1,14 +1,9 @@
 import type { IUserRepository } from '../../../domain/repositories/user.repository.interface'
-import type {
-  ForgotPasswordRequest,
-  ForgotPasswordResponse,
-} from '../../dtos/forgot-password.model'
+import type { RequestMagicLinkRequest } from '../../dtos/request-magic-link.model'
 import type { INotificationSender } from '../../ports/notification-sender.port'
 import { randomUUID } from 'node:crypto'
 
-const FIFTEEN_MINUTES_MS = 15 * 60 * 1000
-
-export class ForgotPasswordUseCase {
+export class RequestMagicLinkUseCase {
   private readonly notificationSender?: INotificationSender
   private readonly tokenGenerator: () => string
 
@@ -16,7 +11,8 @@ export class ForgotPasswordUseCase {
     private readonly userRepository: IUserRepository,
     notificationSenderOrTokenGenerator?: INotificationSender | (() => string),
     tokenGenerator: () => string = randomUUID,
-    private readonly resetPasswordUrl: string = 'https://servicespack.com/reset-password',
+    private readonly magicLinkExpirationMinutes: number = 15,
+    private readonly loginUrl: string = 'https://servicespack.com/login',
   ) {
     if (typeof notificationSenderOrTokenGenerator === 'function') {
       this.tokenGenerator = notificationSenderOrTokenGenerator
@@ -28,34 +24,33 @@ export class ForgotPasswordUseCase {
     }
   }
 
-  async execute(request: ForgotPasswordRequest): Promise<ForgotPasswordResponse> {
+  async execute(request: RequestMagicLinkRequest): Promise<void> {
     const user = await this.userRepository.findByEmail(request.email)
 
     if (user === null) {
-      return {}
+      return
     }
 
     const token = this.tokenGenerator()
-    const expiresAt = new Date(Date.now() + FIFTEEN_MINUTES_MS)
+    const expirationMinutes = this.magicLinkExpirationMinutes
+    const expiresAt = new Date(Date.now() + expirationMinutes * 60 * 1000)
 
-    user.requestPasswordReset(token, expiresAt)
+    user.requestMagicLogin(token, expiresAt)
 
     await this.userRepository.update(user)
 
     if (this.notificationSender) {
       await this.notificationSender.sendEmail({
         to: user.email,
-        templateCode: 'reset-password',
+        templateCode: 'magic-link',
         variables: {
           name: user.name,
           token,
-          resetUrl: `${this.resetPasswordUrl}?token=${token}`,
+          loginUrl: `${this.loginUrl}?token=${token}`,
         },
-        subject: 'Reset your password',
-        content: `You requested a password reset. Your reset token is: ${token} (expires in 15 minutes).`,
+        subject: 'Your magic login link',
+        content: `You requested a magic login link. Your magic token is: ${token} (expires in ${expirationMinutes} minutes).`,
       })
     }
-
-    return { resetToken: token }
   }
 }

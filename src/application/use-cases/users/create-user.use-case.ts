@@ -15,13 +15,14 @@ export class CreateUserUseCase {
 
   async execute(request: CreateUserRequest): Promise<User> {
     const hashedPassword = await this.passwordHasher.hash(request.password)
+    const rawVerificationKey = crypto.randomUUID()
 
     const user = new User({
       name: xss(request.name),
       email: xss(request.email),
       username: xss(request.username),
       password: hashedPassword,
-      emailVerificationKey: crypto.randomUUID(),
+      emailVerificationKey: User.hashToken(rawVerificationKey),
       roles: request.roles ? [...request.roles] : undefined,
     })
 
@@ -33,10 +34,10 @@ export class CreateUserUseCase {
         templateCode: 'verify-email',
         variables: {
           name: createdUser.name,
-          verificationUrl: createdUser.emailVerificationKey,
+          verificationUrl: rawVerificationKey,
         },
         subject: 'Verify your email',
-        content: `Welcome to ServicesPack! Your verification key is: ${createdUser.emailVerificationKey}`,
+        content: `Welcome to ServicesPack! Your verification key is: ${rawVerificationKey}`,
       })
     }
 

@@ -51,11 +51,49 @@ describe('mongooseUserRepository (In-Memory MongoDB Integration)', () => {
     created.requestPasswordReset('token-xyz-123', new Date(Date.now() + 15 * 60 * 1000))
 
     const updated = await repository.update(created)
-    expect(updated.passwordResetToken).toBe('token-xyz-123')
+    expect(updated.passwordResetToken).toBe(User.hashToken('token-xyz-123'))
 
     const byToken = await repository.findByResetToken('token-xyz-123')
     expect(byToken).not.toBeNull()
     expect(byToken?.id).toBe(created.id)
+  })
+
+  it('should retrieve user by username or email using findByUsernameOrEmail', async () => {
+    const user = new User({
+      name: 'Find User',
+      username: 'find_user_or_email',
+      email: 'find_or_email@example.com',
+      password: 'hashed-password-123',
+    })
+
+    const created = await repository.create(user)
+
+    const byUsername = await repository.findByUsernameOrEmail('find_user_or_email')
+    expect(byUsername).not.toBeNull()
+    expect(byUsername?.id).toBe(created.id)
+
+    const byEmail = await repository.findByUsernameOrEmail('FIND_OR_EMAIL@EXAMPLE.COM ')
+    expect(byEmail).not.toBeNull()
+    expect(byEmail?.id).toBe(created.id)
+  })
+
+  it('should retrieve user by magic login token using findByMagicLoginToken', async () => {
+    const user = new User({
+      name: 'Magic User',
+      username: 'magic_user_123',
+      email: 'magic_user_123@example.com',
+      password: 'hashed-password-123',
+    })
+
+    const created = await repository.create(user)
+    created.requestMagicLogin('magic-login-uuid-token', new Date(Date.now() + 15 * 60 * 1000))
+
+    const updated = await repository.update(created)
+    expect(updated.magicLoginToken).toBe(User.hashToken('magic-login-uuid-token'))
+
+    const byMagicToken = await repository.findByMagicLoginToken('magic-login-uuid-token')
+    expect(byMagicToken).not.toBeNull()
+    expect(byMagicToken?.id).toBe(created.id)
   })
 
   it('should list users with pagination in real MongoDB', async () => {

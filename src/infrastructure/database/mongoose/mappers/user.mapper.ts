@@ -16,6 +16,8 @@ export class UserMapper {
       roles: doc.roles,
       passwordResetToken: doc.passwordResetToken,
       passwordResetExpiresAt: doc.passwordResetExpiresAt,
+      magicLoginToken: doc.magicLoginToken,
+      magicLoginExpiresAt: doc.magicLoginExpiresAt,
       createdAt: doc.createdAt,
       updatedAt: doc.updatedAt,
     })
@@ -32,6 +34,8 @@ export class UserMapper {
       roles: user.roles,
       passwordResetToken: user.passwordResetToken,
       passwordResetExpiresAt: user.passwordResetExpiresAt,
+      magicLoginToken: user.magicLoginToken,
+      magicLoginExpiresAt: user.magicLoginExpiresAt,
     }
   }
 }

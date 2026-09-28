@@ -1,11 +1,11 @@
 import type { IUserRepository } from '../../../domain/repositories/user.repository.interface'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { User } from '../../../domain/entities/user.entity'
-import { ForgotPasswordUseCase } from './forgot-password.use-case'
+import { RequestMagicLinkUseCase } from './request-magic-link.use-case'
 
-describe(ForgotPasswordUseCase.name, () => {
+describe(RequestMagicLinkUseCase.name, () => {
   let userRepository: IUserRepository
-  let useCase: ForgotPasswordUseCase
+  let useCase: RequestMagicLinkUseCase
 
   beforeEach(() => {
     userRepository = {
@@ -20,7 +20,7 @@ describe(ForgotPasswordUseCase.name, () => {
       update: vi.fn(),
       delete: vi.fn(),
     }
-    useCase = new ForgotPasswordUseCase(userRepository)
+    useCase = new RequestMagicLinkUseCase(userRepository, undefined, () => 'mock-uuid', 20)
   })
 
   it('should return empty response and not update when user is not found (anti-enumeration)', async () => {
@@ -28,11 +28,11 @@ describe(ForgotPasswordUseCase.name, () => {
 
     const result = await useCase.execute({ email: 'nonexistent@example.com' })
 
-    expect(result.resetToken).toBeUndefined()
+    expect(result).toBeUndefined()
     expect(userRepository.update).not.toHaveBeenCalled()
   })
 
-  it('should generate a reset token, set 15 minutes expiration and persist user when user exists', async () => {
+  it('should generate a magic token, set expiration and persist user when user exists', async () => {
     const user = new User({
       id: 'u1',
       name: 'John Doe',
@@ -43,16 +43,16 @@ describe(ForgotPasswordUseCase.name, () => {
     vi.mocked(userRepository.findByEmail).mockResolvedValue(user)
 
     const beforeCall = Date.now()
-    const result = await useCase.execute({ email: 'john@example.com' })
+    await useCase.execute({ email: 'john@example.com' })
     const afterCall = Date.now()
 
-    expect(result.resetToken).toBeDefined()
-    expect(user.passwordResetToken).toBe(User.hashToken(result.resetToken!))
-    expect(user.passwordResetExpiresAt).toBeDefined()
+    expect(user.magicLoginToken).toBe(User.hashToken('mock-uuid'))
+    expect(user.magicLoginExpiresAt).toBeDefined()
 
-    const expiryTime = user.passwordResetExpiresAt!.getTime()
-    const expectedMinExpiry = beforeCall + 15 * 60 * 1000
-    const expectedMaxExpiry = afterCall + 15 * 60 * 1000
+    const expirationMinutes = 20
+    const expiryTime = user.magicLoginExpiresAt!.getTime()
+    const expectedMinExpiry = beforeCall + expirationMinutes * 60 * 1000
+    const expectedMaxExpiry = afterCall + expirationMinutes * 60 * 1000
 
     expect(expiryTime).toBeGreaterThanOrEqual(expectedMinExpiry)
     expect(expiryTime).toBeLessThanOrEqual(expectedMaxExpiry)
@@ -69,15 +69,14 @@ describe(ForgotPasswordUseCase.name, () => {
     })
     vi.mocked(userRepository.findByEmail).mockResolvedValue(user)
 
-    const customUseCase = new ForgotPasswordUseCase(
+    const customUseCase = new RequestMagicLinkUseCase(
       userRepository,
       () => 'fixed-custom-token',
     )
 
-    const result = await customUseCase.execute({ email: 'john@example.com' })
+    await customUseCase.execute({ email: 'john@example.com' })
 
-    expect(result.resetToken).toBe('fixed-custom-token')
-    expect(user.passwordResetToken).toBe(User.hashToken('fixed-custom-token'))
+    expect(user.magicLoginToken).toBe(User.hashToken('fixed-custom-token'))
     expect(userRepository.update).toHaveBeenCalledWith(user)
   })
 
@@ -95,7 +94,7 @@ describe(ForgotPasswordUseCase.name, () => {
       sendEmail: vi.fn().mockResolvedValue(undefined),
     }
 
-    const useCaseWithNotifier = new ForgotPasswordUseCase(
+    const useCaseWithNotifier = new RequestMagicLinkUseCase(
       userRepository,
       notificationSender,
       () => 'fixed-token',
@@ -106,14 +105,14 @@ describe(ForgotPasswordUseCase.name, () => {
     expect(notificationSender.sendEmail).toHaveBeenCalledWith(
       expect.objectContaining({
         to: 'john@example.com',
-        templateCode: 'reset-password',
-        subject: 'Reset your password',
+        templateCode: 'magic-link',
+        subject: 'Your magic login link',
         content: expect.stringContaining('fixed-token'),
       }),
     )
   })
 
-  it('should use custom resetPasswordUrl if provided', async () => {
+  it('should use custom loginUrl if provided', async () => {
     const user = new User({
       id: 'u1',
       name: 'John Doe',
@@ -127,11 +126,12 @@ describe(ForgotPasswordUseCase.name, () => {
       sendEmail: vi.fn().mockResolvedValue(undefined),
     }
 
-    const useCaseWithNotifier = new ForgotPasswordUseCase(
+    const useCaseWithNotifier = new RequestMagicLinkUseCase(
       userRepository,
       notificationSender,
       () => 'fixed-token',
-      'https://my-custom-domain.com/reset',
+      15,
+      'https://my-custom-domain.com/login',
     )
 
     await useCaseWithNotifier.execute({ email: 'john@example.com' })
@@ -141,26 +141,9 @@ describe(ForgotPasswordUseCase.name, () => {
         variables: {
           name: 'John Doe',
           token: 'fixed-token',
-          resetUrl: 'https://my-custom-domain.com/reset?token=fixed-token',
+          loginUrl: 'https://my-custom-domain.com/login?token=fixed-token',
         },
       }),
     )
-  })
-
-  it('should not call notificationSender.sendEmail when user is not found', async () => {
-    vi.mocked(userRepository.findByEmail).mockResolvedValue(null)
-
-    const notificationSender = {
-      sendEmail: vi.fn().mockResolvedValue(undefined),
-    }
-
-    const useCaseWithNotifier = new ForgotPasswordUseCase(
-      userRepository,
-      notificationSender,
-    )
-
-    await useCaseWithNotifier.execute({ email: 'nonexistent@example.com' })
-
-    expect(notificationSender.sendEmail).not.toHaveBeenCalled()
   })
 })

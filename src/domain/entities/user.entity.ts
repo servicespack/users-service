@@ -1,6 +1,9 @@
+import { createHash } from 'node:crypto'
 import {
   EmailAlreadyVerifiedError,
+  InvalidMagicLoginTokenError,
   InvalidResetTokenError,
+  MagicLoginTokenExpiredError,
   ResetTokenExpiredError,
   WrongVerificationKeyError,
 } from '../errors'
@@ -15,12 +18,18 @@ export interface UserProps {
   emailVerificationKey?: string
   passwordResetToken?: string
   passwordResetExpiresAt?: Date
+  magicLoginToken?: string
+  magicLoginExpiresAt?: Date
   roles?: string[]
   createdAt?: Date
   updatedAt?: Date
 }
 
 export class User {
+  static hashToken(token: string): string {
+    return createHash('sha256').update(token).digest('hex')
+  }
+
   private readonly _id?: string
   private _name: string
   private _email: string
@@ -30,6 +39,8 @@ export class User {
   private _emailVerificationKey: string
   private _passwordResetToken?: string
   private _passwordResetExpiresAt?: Date
+  private _magicLoginToken?: string
+  private _magicLoginExpiresAt?: Date
   private _roles: string[]
   private readonly _createdAt?: Date
   private readonly _updatedAt?: Date
@@ -44,6 +55,8 @@ export class User {
     this._emailVerificationKey = props.emailVerificationKey ?? ''
     this._passwordResetToken = props.passwordResetToken
     this._passwordResetExpiresAt = props.passwordResetExpiresAt
+    this._magicLoginToken = props.magicLoginToken
+    this._magicLoginExpiresAt = props.magicLoginExpiresAt
     this._roles = props.roles && props.roles.length > 0 ? [...props.roles] : ['user']
     this._createdAt = props.createdAt
     this._updatedAt = props.updatedAt
@@ -85,6 +98,14 @@ export class User {
     return this._passwordResetExpiresAt
   }
 
+  get magicLoginToken(): string | undefined {
+    return this._magicLoginToken
+  }
+
+  get magicLoginExpiresAt(): Date | undefined {
+    return this._magicLoginExpiresAt
+  }
+
   get createdAt(): Date | undefined {
     return this._createdAt
   }
@@ -121,7 +142,8 @@ export class User {
     if (this._isEmailVerified) {
       throw new EmailAlreadyVerifiedError()
     }
-    if (key !== this._emailVerificationKey) {
+    const hashedKey = User.hashToken(key)
+    if (hashedKey !== this._emailVerificationKey) {
       throw new WrongVerificationKeyError()
     }
     this._isEmailVerified = true
@@ -129,12 +151,13 @@ export class User {
   }
 
   requestPasswordReset(token: string, expiresAt: Date): void {
-    this._passwordResetToken = token
+    this._passwordResetToken = User.hashToken(token)
     this._passwordResetExpiresAt = expiresAt
   }
 
   resetPassword(token: string, newHashedPassword: string): void {
-    if (!this._passwordResetToken || this._passwordResetToken !== token) {
+    const hashedToken = User.hashToken(token)
+    if (!this._passwordResetToken || this._passwordResetToken !== hashedToken) {
       throw new InvalidResetTokenError()
     }
     if (!this._passwordResetExpiresAt || this._passwordResetExpiresAt < new Date()) {
@@ -143,6 +166,23 @@ export class User {
     this._password = newHashedPassword
     this._passwordResetToken = undefined
     this._passwordResetExpiresAt = undefined
+  }
+
+  requestMagicLogin(token: string, expiresAt: Date): void {
+    this._magicLoginToken = User.hashToken(token)
+    this._magicLoginExpiresAt = expiresAt
+  }
+
+  authenticateWithMagicLogin(token: string): void {
+    const hashedToken = User.hashToken(token)
+    if (!this._magicLoginToken || this._magicLoginToken !== hashedToken) {
+      throw new InvalidMagicLoginTokenError()
+    }
+    if (!this._magicLoginExpiresAt || this._magicLoginExpiresAt < new Date()) {
+      throw new MagicLoginTokenExpiredError()
+    }
+    this._magicLoginToken = undefined
+    this._magicLoginExpiresAt = undefined
   }
 
   toJSON() {

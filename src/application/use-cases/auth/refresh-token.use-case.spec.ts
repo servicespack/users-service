@@ -26,6 +26,8 @@ describe(RefreshTokenUseCase.name, () => {
       findByUsername: vi.fn(),
       findByEmail: vi.fn(),
       findByResetToken: vi.fn(),
+      findByUsernameOrEmail: vi.fn(),
+      findByMagicLoginToken: vi.fn(),
       list: vi.fn(),
       update: vi.fn(),
       delete: vi.fn(),

@@ -19,6 +19,8 @@ describe(CreateTokenUseCase.name, () => {
       findByUsername: vi.fn(),
       findByEmail: vi.fn(),
       findByResetToken: vi.fn(),
+      findByUsernameOrEmail: vi.fn(),
+      findByMagicLoginToken: vi.fn(),
       list: vi.fn(),
       update: vi.fn(),
       delete: vi.fn(),
@@ -34,7 +36,7 @@ describe(CreateTokenUseCase.name, () => {
   })
 
   it('should throw InvalidCredentialsError if user does not exist', async () => {
-    vi.mocked(userRepository.findByUsername).mockResolvedValue(null)
+    vi.mocked(userRepository.findByUsernameOrEmail).mockResolvedValue(null)
 
     await expect(useCase.execute({
       username: 'unknown',
@@ -50,7 +52,7 @@ describe(CreateTokenUseCase.name, () => {
       username: 'user',
       password: 'hash',
     })
-    vi.mocked(userRepository.findByUsername).mockResolvedValue(user)
+    vi.mocked(userRepository.findByUsernameOrEmail).mockResolvedValue(user)
     vi.mocked(passwordHasher.verify).mockResolvedValue(false)
 
     await expect(useCase.execute({
@@ -67,7 +69,7 @@ describe(CreateTokenUseCase.name, () => {
       username: 'user',
       password: 'hash',
     })
-    vi.mocked(userRepository.findByUsername).mockResolvedValue(user)
+    vi.mocked(userRepository.findByUsernameOrEmail).mockResolvedValue(user)
     vi.mocked(passwordHasher.verify).mockResolvedValue(true)
 
     const result = await useCase.execute({

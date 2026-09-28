@@ -13,8 +13,10 @@ import { CreateTokenDto } from '../../adapters/dtos/create-token.dto'
 import { CreateUserDto } from '../../adapters/dtos/create-user.dto'
 import { CreateVerificationDto } from '../../adapters/dtos/create-verification.dto'
 import { ForgotPasswordDto } from '../../adapters/dtos/forgot-password.dto'
+import { LoginWithMagicLinkDto } from '../../adapters/dtos/login-with-magic-link.dto'
 import { LogoutDto } from '../../adapters/dtos/logout.dto'
 import { RefreshTokenDto } from '../../adapters/dtos/refresh-token.dto'
+import { RequestMagicLinkDto } from '../../adapters/dtos/request-magic-link.dto'
 import { ResetPasswordDto } from '../../adapters/dtos/reset-password.dto'
 import { UpdateUserPasswordDto } from '../../adapters/dtos/update-user-password.dto'
 import { UpdateUserDto } from '../../adapters/dtos/update-user.dto'
@@ -22,8 +24,10 @@ import auth from '../../adapters/middlewares/auth'
 import { validator } from '../../adapters/middlewares/validator'
 import { CreateTokenUseCase } from '../../application/use-cases/auth/create-token.use-case'
 import { ForgotPasswordUseCase } from '../../application/use-cases/auth/forgot-password.use-case'
+import { LoginWithMagicLinkUseCase } from '../../application/use-cases/auth/login-with-magic-link.use-case'
 import { LogoutUseCase } from '../../application/use-cases/auth/logout.use-case'
 import { RefreshTokenUseCase } from '../../application/use-cases/auth/refresh-token.use-case'
+import { RequestMagicLinkUseCase } from '../../application/use-cases/auth/request-magic-link.use-case'
 import { ResetPasswordUseCase } from '../../application/use-cases/auth/reset-password.use-case'
 import { HealthcheckUseCase } from '../../application/use-cases/healthcheck/healthcheck.use-case'
 import { CreateUserUseCase } from '../../application/use-cases/users/create-user.use-case'
@@ -65,12 +69,31 @@ const createTokenUseCase = new CreateTokenUseCase(userRepository, passwordHasher
 const refreshTokenUseCase = new RefreshTokenUseCase(refreshTokenRepository, tokenProvider, userRepository)
 const logoutUseCase = new LogoutUseCase(refreshTokenRepository)
 const verifyEmailUseCase = new VerifyEmailUseCase(userRepository)
-const forgotPasswordUseCase = new ForgotPasswordUseCase(userRepository, notificationSender)
+const forgotPasswordUseCase = new ForgotPasswordUseCase(
+  userRepository,
+  notificationSender,
+  undefined,
+  configuration.auth.resetPasswordUrl,
+)
 const resetPasswordUseCase = new ResetPasswordUseCase(userRepository, passwordHasher)
+const requestMagicLinkUseCase = new RequestMagicLinkUseCase(
+  userRepository,
+  notificationSender,
+  undefined,
+  Number(configuration.auth.magicLinkExpiration),
+  configuration.auth.magicLinkLoginUrl,
+)
+const loginWithMagicLinkUseCase = new LoginWithMagicLinkUseCase(userRepository, tokenProvider, refreshTokenRepository)
 
 // Controllers
 const rootController = new RootController()
-const tokensController = new TokensController(createTokenUseCase, refreshTokenUseCase, logoutUseCase)
+const tokensController = new TokensController(
+  createTokenUseCase,
+  refreshTokenUseCase,
+  logoutUseCase,
+  requestMagicLinkUseCase,
+  loginWithMagicLinkUseCase,
+)
 const usersController = new UsersController({
   createUserUseCase,
   listUsersUseCase,
@@ -114,6 +137,8 @@ router.get('/healthcheck', (req: Request, res: Response) => healthcheckControlle
 router.post('/tokens', [validator({ Dto: CreateTokenDto })], (req: Request, res: Response) => tokensController.create(req, res))
 router.post('/auth/refresh-token', [validator({ Dto: RefreshTokenDto })], (req: Request, res: Response) => tokensController.refresh(req, res))
 router.post('/auth/logout', [validator({ Dto: LogoutDto })], (req: Request, res: Response) => tokensController.logout(req, res))
+router.post('/auth/magic-link/request', [validator({ Dto: RequestMagicLinkDto })], (req: Request, res: Response) => tokensController.requestMagicLink(req, res))
+router.post('/auth/magic-link/login', [validator({ Dto: LoginWithMagicLinkDto })], (req: Request, res: Response) => tokensController.loginWithMagicLink(req, res))
 
 router.post('/auth/forgot-password', [validator({ Dto: ForgotPasswordDto })], (req: Request, res: Response) => passwordsController.forgotPassword(req, res))
 router.post('/auth/reset-password', [validator({ Dto: ResetPasswordDto })], (req: Request, res: Response) => passwordsController.resetPassword(req, res))

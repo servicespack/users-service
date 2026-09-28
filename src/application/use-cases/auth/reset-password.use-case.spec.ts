@@ -20,6 +20,8 @@ describe(ResetPasswordUseCase.name, () => {
       findByUsername: vi.fn(),
       findByEmail: vi.fn(),
       findByResetToken: vi.fn(),
+      findByUsernameOrEmail: vi.fn(),
+      findByMagicLoginToken: vi.fn(),
       list: vi.fn(),
       update: vi.fn(),
       delete: vi.fn(),
@@ -47,7 +49,7 @@ describe(ResetPasswordUseCase.name, () => {
       email: 'john@example.com',
       username: 'john',
       password: 'old-password',
-      passwordResetToken: 'expired-token',
+      passwordResetToken: User.hashToken('expired-token'),
       passwordResetExpiresAt: new Date(Date.now() - 1000),
     })
     vi.mocked(userRepository.findByResetToken).mockResolvedValue(user)
@@ -65,7 +67,7 @@ describe(ResetPasswordUseCase.name, () => {
       email: 'john@example.com',
       username: 'john',
       password: 'old-password',
-      passwordResetToken: 'valid-token',
+      passwordResetToken: User.hashToken('valid-token'),
       passwordResetExpiresAt: new Date(Date.now() + 15 * 60 * 1000),
     })
     vi.mocked(userRepository.findByResetToken).mockResolvedValue(user)

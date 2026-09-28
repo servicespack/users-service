@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import {
   EmailAlreadyVerifiedError,
+  InvalidMagicLoginTokenError,
   InvalidResetTokenError,
+  MagicLoginTokenExpiredError,
   ResetTokenExpiredError,
   WrongVerificationKeyError,
 } from '../errors'
@@ -98,7 +100,7 @@ describe('user Entity', () => {
       username: 'john',
       password: 'hashed-password',
       isEmailVerified: false,
-      emailVerificationKey: 'correct-key',
+      emailVerificationKey: User.hashToken('correct-key'),
     })
 
     user.verifyEmail('correct-key')
@@ -114,7 +116,7 @@ describe('user Entity', () => {
       username: 'john',
       password: 'hashed-password',
       isEmailVerified: false,
-      emailVerificationKey: 'correct-key',
+      emailVerificationKey: User.hashToken('correct-key'),
     })
 
     expect(() => user.verifyEmail('wrong-key')).toThrow(WrongVerificationKeyError)
@@ -165,7 +167,7 @@ describe('user Entity', () => {
     const expiresAt = new Date(Date.now() + 15 * 60 * 1000)
     user.requestPasswordReset('reset-token-123', expiresAt)
 
-    expect(user.passwordResetToken).toBe('reset-token-123')
+    expect(user.passwordResetToken).toBe(User.hashToken('reset-token-123'))
     expect(user.passwordResetExpiresAt).toBe(expiresAt)
   })
 
@@ -175,7 +177,7 @@ describe('user Entity', () => {
       email: 'john@example.com',
       username: 'john',
       password: 'old-password',
-      passwordResetToken: 'valid-token',
+      passwordResetToken: User.hashToken('valid-token'),
       passwordResetExpiresAt: new Date(Date.now() + 15 * 60 * 1000),
     })
 
@@ -188,7 +190,7 @@ describe('user Entity', () => {
       email: 'john@example.com',
       username: 'john',
       password: 'old-password',
-      passwordResetToken: 'valid-token',
+      passwordResetToken: User.hashToken('valid-token'),
       passwordResetExpiresAt: new Date(Date.now() - 1000),
     })
 
@@ -201,7 +203,7 @@ describe('user Entity', () => {
       email: 'john@example.com',
       username: 'john',
       password: 'old-password',
-      passwordResetToken: 'valid-token',
+      passwordResetToken: User.hashToken('valid-token'),
       passwordResetExpiresAt: new Date(Date.now() + 15 * 60 * 1000),
     })
 
@@ -210,5 +212,62 @@ describe('user Entity', () => {
     expect(user.password).toBe('new-hashed-password')
     expect(user.passwordResetToken).toBeUndefined()
     expect(user.passwordResetExpiresAt).toBeUndefined()
+  })
+
+  it('should set magic login token and expiresAt', () => {
+    const user = new User({
+      name: 'John',
+      email: 'john@example.com',
+      username: 'john',
+      password: 'password',
+    })
+
+    const expiresAt = new Date(Date.now() + 15 * 60 * 1000)
+    user.requestMagicLogin('magic-token-123', expiresAt)
+
+    expect(user.magicLoginToken).toBe(User.hashToken('magic-token-123'))
+    expect(user.magicLoginExpiresAt).toBe(expiresAt)
+  })
+
+  it('should throw InvalidMagicLoginTokenError if magic login token does not match', () => {
+    const user = new User({
+      name: 'John',
+      email: 'john@example.com',
+      username: 'john',
+      password: 'password',
+      magicLoginToken: User.hashToken('valid-token'),
+      magicLoginExpiresAt: new Date(Date.now() + 15 * 60 * 1000),
+    })
+
+    expect(() => user.authenticateWithMagicLogin('wrong-token')).toThrow(InvalidMagicLoginTokenError)
+  })
+
+  it('should throw MagicLoginTokenExpiredError if magic login token has expired', () => {
+    const user = new User({
+      name: 'John',
+      email: 'john@example.com',
+      username: 'john',
+      password: 'password',
+      magicLoginToken: User.hashToken('valid-token'),
+      magicLoginExpiresAt: new Date(Date.now() - 1000),
+    })
+
+    expect(() => user.authenticateWithMagicLogin('valid-token')).toThrow(MagicLoginTokenExpiredError)
+  })
+
+  it('should authenticate and clear token and expiry when valid', () => {
+    const user = new User({
+      name: 'John',
+      email: 'john@example.com',
+      username: 'john',
+      password: 'password',
+      magicLoginToken: User.hashToken('valid-token'),
+      magicLoginExpiresAt: new Date(Date.now() + 15 * 60 * 1000),
+    })
+
+    user.authenticateWithMagicLogin('valid-token')
+
+    expect(user.magicLoginToken).toBeUndefined()
+    expect(user.magicLoginExpiresAt).toBeUndefined()
   })
 })

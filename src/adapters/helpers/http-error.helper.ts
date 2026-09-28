@@ -3,8 +3,10 @@ import {
   DomainError,
   EmailAlreadyVerifiedError,
   InvalidCredentialsError,
+  InvalidMagicLoginTokenError,
   InvalidPasswordError,
   InvalidSearchQueryError,
+  MagicLoginTokenExpiredError,
   UserNotFoundError,
   WrongVerificationKeyError,
 } from '../../domain/errors'
@@ -14,6 +16,12 @@ export function handleHttpError(error: unknown, response: Response): Response {
     return response.status(404).json({ error: error.message })
   }
   if (error instanceof InvalidCredentialsError) {
+    return response.status(401).json({ error: error.message })
+  }
+  if (error instanceof InvalidMagicLoginTokenError) {
+    return response.status(401).json({ error: error.message })
+  }
+  if (error instanceof MagicLoginTokenExpiredError) {
     return response.status(401).json({ error: error.message })
   }
   if (error instanceof InvalidPasswordError) {

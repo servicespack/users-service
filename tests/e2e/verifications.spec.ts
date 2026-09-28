@@ -4,10 +4,12 @@ import {
   describe,
   expect,
   it,
+  vi,
 } from 'vitest'
 
 import { UserModel } from '../../src/infrastructure/database/mongoose/models/user.model'
 import { server } from '../../src/infrastructure/http/server'
+import { HttpNotificationSender } from '../../src/infrastructure/notifications/http-notification-sender'
 import { mockUser } from '../__mocks__/user'
 
 describe('verifications (e2e)', () => {
@@ -17,6 +19,7 @@ describe('verifications (e2e)', () => {
 
   it('should verify email successfully', async () => {
     const user = mockUser()
+    const sendEmailSpy = vi.spyOn(HttpNotificationSender.prototype, 'sendEmail')
 
     await supertest(server)
       .post('/api/users')
@@ -27,18 +30,27 @@ describe('verifications (e2e)', () => {
     expect(dbUser).toBeDefined()
     expect(dbUser?.isEmailVerified).toBe(false)
 
+    expect(sendEmailSpy).toHaveBeenCalled()
+    const lastCall = sendEmailSpy.mock.calls[sendEmailSpy.mock.calls.length - 1]
+    const rawKey = lastCall[0].variables.verificationUrl
+
+    const { User } = await import('../../src/domain/entities/user.entity')
+    expect(dbUser?.emailVerificationKey).toBe(User.hashToken(rawKey))
+
     await supertest(server)
       .post('/api/verifications')
       .send({
         user_id: dbUser?._id.toString(),
         type: 'email',
-        key: dbUser?.emailVerificationKey,
+        key: rawKey,
       })
       .expect(201)
 
     const verifiedUser = await UserModel.findOne({ email: user.email })
     expect(verifiedUser?.isEmailVerified).toBe(true)
     expect(verifiedUser?.emailVerificationKey).toBe('')
+
+    sendEmailSpy.mockRestore()
   })
 
   it('should return 400 Bad Request on missing fields', async () => {
@@ -72,6 +84,7 @@ describe('verifications (e2e)', () => {
 
   it('should return 400 if email already verified', async () => {
     const user = mockUser()
+    const sendEmailSpy = vi.spyOn(HttpNotificationSender.prototype, 'sendEmail')
 
     await supertest(server)
       .post('/api/users')
@@ -80,12 +93,16 @@ describe('verifications (e2e)', () => {
 
     const dbUser = await UserModel.findOne({ email: user.email })
 
+    expect(sendEmailSpy).toHaveBeenCalled()
+    const lastCall = sendEmailSpy.mock.calls[sendEmailSpy.mock.calls.length - 1]
+    const rawKey = lastCall[0].variables.verificationUrl
+
     await supertest(server)
       .post('/api/verifications')
       .send({
         user_id: dbUser?._id.toString(),
         type: 'email',
-        key: dbUser?.emailVerificationKey,
+        key: rawKey,
       })
       .expect(201)
 
@@ -94,8 +111,10 @@ describe('verifications (e2e)', () => {
       .send({
         user_id: dbUser?._id.toString(),
         type: 'email',
-        key: dbUser?.emailVerificationKey,
+        key: rawKey,
       })
       .expect(400)
+
+    sendEmailSpy.mockRestore()
   })
 })

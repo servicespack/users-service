@@ -1,5 +1,6 @@
 import type { IUserRepository } from '../../../domain/repositories/user.repository.interface'
 import type { IPasswordHasher } from '../../ports/password-hasher.port'
+import crypto from 'node:crypto'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { User } from '../../../domain/entities/user.entity'
 import {
@@ -25,6 +26,8 @@ describe('users Use Cases', () => {
       findByUsername: vi.fn(),
       findByEmail: vi.fn(),
       findByResetToken: vi.fn(),
+      findByUsernameOrEmail: vi.fn(),
+      findByMagicLoginToken: vi.fn(),
       list: vi.fn(),
       update: vi.fn(),
       delete: vi.fn(),
@@ -79,6 +82,7 @@ describe('users Use Cases', () => {
     })
 
     it('should call notificationSender.sendEmail when notificationSender is provided', async () => {
+      const randomUUIDSpy = vi.spyOn(crypto, 'randomUUID').mockReturnValue('key-123' as any)
       const notificationSender = {
         sendEmail: vi.fn().mockResolvedValue(undefined),
       }
@@ -89,7 +93,7 @@ describe('users Use Cases', () => {
         email: 'test@example.com',
         username: 'cleanuser',
         password: 'hashed-pass',
-        emailVerificationKey: 'key-123',
+        emailVerificationKey: User.hashToken('key-123'),
       })
       vi.mocked(userRepository.create).mockResolvedValue(createdMockUser)
 
@@ -108,6 +112,8 @@ describe('users Use Cases', () => {
           content: expect.stringContaining('key-123'),
         }),
       )
+
+      randomUUIDSpy.mockRestore()
     })
   })
 

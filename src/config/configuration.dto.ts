@@ -35,6 +35,15 @@ export class ConfigurationAuthDto {
 
   @IsString()
   jwtExpiration!: string
+
+  @IsString()
+  magicLinkExpiration!: string
+
+  @IsString()
+  magicLinkLoginUrl!: string
+
+  @IsString()
+  resetPasswordUrl!: string
 }
 
 export class ConfigurationNotificationsDto {

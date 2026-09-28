@@ -22,7 +22,7 @@ describe(MongooseUserRepository.name, () => {
 
     const result = await repository.findByResetToken('nonexistent-token')
     expect(result).toBeNull()
-    expect(mockModel.findOne).toHaveBeenCalledWith({ passwordResetToken: 'nonexistent-token' })
+    expect(mockModel.findOne).toHaveBeenCalledWith({ passwordResetToken: User.hashToken('nonexistent-token') })
   })
 
   it('should throw UserNotFoundError when updating non-existent user', async () => {

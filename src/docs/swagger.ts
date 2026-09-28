@@ -68,7 +68,7 @@ export const swaggerDocument = {
     '/api/tokens': {
       post: {
         summary: 'Authenticate user',
-        description: 'Authenticates a user with username and password, returning a signed JWT token.',
+        description: 'Authenticates a user with username (or email) and password, returning a signed JWT token.',
         requestBody: {
           required: true,
           content: {
@@ -259,6 +259,100 @@ export const swaggerDocument = {
           },
           400: {
             description: 'Bad request: invalid or expired reset token, or password too short.',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ErrorResponse',
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/api/auth/magic-link/request': {
+      post: {
+        summary: 'Request magic login link',
+        description: 'Initiates passwordless login. If the email exists, a magic login link is sent to the user.',
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                $ref: '#/components/schemas/RequestMagicLinkDto',
+              },
+            },
+          },
+        },
+        responses: {
+          200: {
+            description: 'Success message confirming that if the account exists, instructions were sent.',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    message: {
+                      type: 'string',
+                      example: 'If the email exists, a magic login link has been sent.',
+                    },
+                  },
+                  required: ['message'],
+                },
+              },
+            },
+          },
+          400: {
+            description: 'Bad request: validation error.',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ErrorResponse',
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/api/auth/magic-link/login': {
+      post: {
+        summary: 'Login with magic link',
+        description: 'Authenticates a user using a valid magic login token, returning standard JWT access and refresh tokens.',
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                $ref: '#/components/schemas/LoginWithMagicLinkDto',
+              },
+            },
+          },
+        },
+        responses: {
+          201: {
+            description: 'Successfully authenticated. Access token and Refresh token returned.',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    Authorization: {
+                      type: 'string',
+                      example: 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+                    },
+                    RefreshToken: {
+                      type: 'string',
+                      example: 'ad7e04392e999fe722eb486569ccd8a6d26a3a806842bda76589089f25bb2bab3855e6931017f134',
+                    },
+                  },
+                  required: ['Authorization', 'RefreshToken'],
+                },
+              },
+            },
+          },
+          401: {
+            description: 'Unauthorized: invalid or expired magic login token.',
             content: {
               'application/json': {
                 schema: {
@@ -891,7 +985,7 @@ export const swaggerDocument = {
         properties: {
           username: {
             type: 'string',
-            description: 'Registered username',
+            description: 'Registered username or email address',
             example: 'johndoe',
           },
           password: {
@@ -955,6 +1049,29 @@ export const swaggerDocument = {
           },
         },
         required: ['error'],
+      },
+      RequestMagicLinkDto: {
+        type: 'object',
+        properties: {
+          email: {
+            type: 'string',
+            format: 'email',
+            description: 'User email address',
+            example: 'john@example.com',
+          },
+        },
+        required: ['email'],
+      },
+      LoginWithMagicLinkDto: {
+        type: 'object',
+        properties: {
+          token: {
+            type: 'string',
+            description: 'Magic login token received via email',
+            example: 'd3b07384d113edec49eaa6238ad5ff00',
+          },
+        },
+        required: ['token'],
       },
       ForgotPasswordDto: {
         type: 'object',

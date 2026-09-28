@@ -16,6 +16,9 @@ describe('configuration', () => {
     expect(configuration.servers.http.port).toBe('3000')
     expect(configuration.servers.grpc.port).toBe('50051')
     expect(configuration.notifications.url).toBe('http://localhost:3001')
+    expect(configuration.auth.magicLinkExpiration).toBe('15')
+    expect(configuration.auth.magicLinkLoginUrl).toBe('https://servicespack.com/login')
+    expect(configuration.auth.resetPasswordUrl).toBe('https://servicespack.com/reset-password')
 
     process.env = originalEnv
   })

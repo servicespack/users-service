@@ -19,6 +19,8 @@ describe(VerifyEmailUseCase.name, () => {
       findByUsername: vi.fn(),
       findByEmail: vi.fn(),
       findByResetToken: vi.fn(),
+      findByUsernameOrEmail: vi.fn(),
+      findByMagicLoginToken: vi.fn(),
       list: vi.fn(),
       update: vi.fn(),
       delete: vi.fn(),
@@ -61,7 +63,7 @@ describe(VerifyEmailUseCase.name, () => {
       username: 'u',
       password: 'p',
       isEmailVerified: false,
-      emailVerificationKey: 'correct-key',
+      emailVerificationKey: User.hashToken('correct-key'),
     })
     vi.mocked(userRepository.findById).mockResolvedValue(user)
 
@@ -79,7 +81,7 @@ describe(VerifyEmailUseCase.name, () => {
       username: 'u',
       password: 'p',
       isEmailVerified: false,
-      emailVerificationKey: 'correct-key',
+      emailVerificationKey: User.hashToken('correct-key'),
     })
     vi.mocked(userRepository.findById).mockResolvedValue(user)
 
