@@ -1,7 +1,8 @@
 import { validate } from 'class-validator'
 
 import { configuration, connectDatabase, cooldown, logger } from './config'
-import { server } from './presentation/http/server'
+import { createGrpcServer, startGrpcServer } from './infrastructure/grpc/server'
+import { server } from './infrastructure/http/server'
 import 'reflect-metadata'
 
 async function main() {
@@ -19,7 +20,10 @@ async function main() {
     logger.info(`Listening on ${servers.http.port}`)
   })
 
-  cooldown({ server })
+  const grpcServer = createGrpcServer()
+  await startGrpcServer(grpcServer, servers.grpc.port)
+
+  cooldown({ server, grpcServer })
 }
 
 main()

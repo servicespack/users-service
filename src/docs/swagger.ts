@@ -12,6 +12,34 @@ export const swaggerDocument = {
     },
   ],
   paths: {
+    '/healthcheck': {
+      get: {
+        summary: 'Service healthcheck',
+        description: 'Returns the health status of the service, database and external dependencies.',
+        responses: {
+          200: {
+            description: 'Service is operational.',
+          },
+          503: {
+            description: 'Service is unavailable.',
+          },
+        },
+      },
+    },
+    '/api/healthcheck': {
+      get: {
+        summary: 'Service healthcheck',
+        description: 'Returns the health status of the service, database and external dependencies.',
+        responses: {
+          200: {
+            description: 'Service is operational.',
+          },
+          503: {
+            description: 'Service is unavailable.',
+          },
+        },
+      },
+    },
     '/api': {
       get: {
         summary: 'Service healthcheck',
@@ -40,7 +68,7 @@ export const swaggerDocument = {
     '/api/tokens': {
       post: {
         summary: 'Authenticate user',
-        description: 'Authenticates a user with username and password, returning a signed JWT token.',
+        description: 'Authenticates a user with username (or email) and password, returning a signed JWT token.',
         requestBody: {
           required: true,
           content: {
@@ -63,8 +91,12 @@ export const swaggerDocument = {
                       type: 'string',
                       example: 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
                     },
+                    RefreshToken: {
+                      type: 'string',
+                      example: 'ad7e04392e999fe722eb486569ccd8a6d26a3a806842bda76589089f25bb2bab3855e6931017f134',
+                    },
                   },
-                  required: ['Authorization'],
+                  required: ['Authorization', 'RefreshToken'],
                 },
               },
             },
@@ -81,6 +113,246 @@ export const swaggerDocument = {
           },
           401: {
             description: 'Unauthorized: invalid credentials.',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ErrorResponse',
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/api/auth/refresh-token': {
+      post: {
+        summary: 'Refresh session',
+        description: 'Refreshes an expired access token using a valid refresh token.',
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                $ref: '#/components/schemas/RefreshTokenDto',
+              },
+            },
+          },
+        },
+        responses: {
+          201: {
+            description: 'Successfully refreshed token.',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    Authorization: { type: 'string', example: 'Bearer eyJhbGci...' },
+                    RefreshToken: { type: 'string' },
+                  },
+                },
+              },
+            },
+          },
+          401: {
+            description: 'Invalid or expired refresh token',
+          },
+        },
+      },
+    },
+    '/api/auth/logout': {
+      post: {
+        summary: 'Logout session',
+        description: 'Revokes a refresh token, ending the session.',
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                $ref: '#/components/schemas/LogoutDto',
+              },
+            },
+          },
+        },
+        responses: {
+          204: {
+            description: 'Successfully logged out.',
+          },
+        },
+      },
+    },
+    '/api/auth/forgot-password': {
+      post: {
+        summary: 'Request password reset',
+        description: 'Initiates password recovery. If the email exists, a password reset link/token is generated.',
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                $ref: '#/components/schemas/ForgotPasswordDto',
+              },
+            },
+          },
+        },
+        responses: {
+          200: {
+            description: 'Success message confirming that if the account exists, instructions were sent.',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    message: {
+                      type: 'string',
+                      example: 'If the email exists, a password reset link has been sent.',
+                    },
+                  },
+                  required: ['message'],
+                },
+              },
+            },
+          },
+          400: {
+            description: 'Bad request: validation error or invalid email payload.',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ErrorResponse',
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/api/auth/reset-password': {
+      post: {
+        summary: 'Reset password',
+        description: 'Resets user password using a valid and non-expired reset token.',
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                $ref: '#/components/schemas/ResetPasswordDto',
+              },
+            },
+          },
+        },
+        responses: {
+          200: {
+            description: 'Password successfully updated.',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    message: {
+                      type: 'string',
+                      example: 'Password successfully reset.',
+                    },
+                  },
+                  required: ['message'],
+                },
+              },
+            },
+          },
+          400: {
+            description: 'Bad request: invalid or expired reset token, or password too short.',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ErrorResponse',
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/api/auth/magic-link/request': {
+      post: {
+        summary: 'Request magic login link',
+        description: 'Initiates passwordless login. If the email exists, a magic login link is sent to the user.',
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                $ref: '#/components/schemas/RequestMagicLinkDto',
+              },
+            },
+          },
+        },
+        responses: {
+          200: {
+            description: 'Success message confirming that if the account exists, instructions were sent.',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    message: {
+                      type: 'string',
+                      example: 'If the email exists, a magic login link has been sent.',
+                    },
+                  },
+                  required: ['message'],
+                },
+              },
+            },
+          },
+          400: {
+            description: 'Bad request: validation error.',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ErrorResponse',
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/api/auth/magic-link/login': {
+      post: {
+        summary: 'Login with magic link',
+        description: 'Authenticates a user using a valid magic login token, returning standard JWT access and refresh tokens.',
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                $ref: '#/components/schemas/LoginWithMagicLinkDto',
+              },
+            },
+          },
+        },
+        responses: {
+          201: {
+            description: 'Successfully authenticated. Access token and Refresh token returned.',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    Authorization: {
+                      type: 'string',
+                      example: 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+                    },
+                    RefreshToken: {
+                      type: 'string',
+                      example: 'ad7e04392e999fe722eb486569ccd8a6d26a3a806842bda76589089f25bb2bab3855e6931017f134',
+                    },
+                  },
+                  required: ['Authorization', 'RefreshToken'],
+                },
+              },
+            },
+          },
+          401: {
+            description: 'Unauthorized: invalid or expired magic login token.',
             content: {
               'application/json': {
                 schema: {
@@ -620,8 +892,16 @@ export const swaggerDocument = {
             description: 'Indicates whether the email address has been verified',
             example: false,
           },
+          roles: {
+            type: 'array',
+            items: {
+              type: 'string',
+            },
+            description: 'Assigned roles for access control',
+            example: ['user'],
+          },
         },
-        required: ['id', 'name', 'email', 'username', 'isEmailVerified'],
+        required: ['id', 'name', 'email', 'username', 'isEmailVerified', 'roles'],
       },
       CreateUserDto: {
         type: 'object',
@@ -648,6 +928,14 @@ export const swaggerDocument = {
             minLength: 8,
             description: 'Password (minimum 8 characters)',
             example: 'securePassword123',
+          },
+          roles: {
+            type: 'array',
+            items: {
+              type: 'string',
+            },
+            description: 'Optional roles assigned to the user',
+            example: ['user'],
           },
         },
         required: ['name', 'username', 'email', 'password'],
@@ -697,7 +985,7 @@ export const swaggerDocument = {
         properties: {
           username: {
             type: 'string',
-            description: 'Registered username',
+            description: 'Registered username or email address',
             example: 'johndoe',
           },
           password: {
@@ -708,6 +996,26 @@ export const swaggerDocument = {
           },
         },
         required: ['username', 'password'],
+      },
+      RefreshTokenDto: {
+        type: 'object',
+        properties: {
+          refreshToken: {
+            type: 'string',
+            description: 'The refresh token obtained during login',
+          },
+        },
+        required: ['refreshToken'],
+      },
+      LogoutDto: {
+        type: 'object',
+        properties: {
+          refreshToken: {
+            type: 'string',
+            description: 'The refresh token to revoke',
+          },
+        },
+        required: ['refreshToken'],
       },
       CreateVerificationDto: {
         type: 'object',
@@ -741,6 +1049,59 @@ export const swaggerDocument = {
           },
         },
         required: ['error'],
+      },
+      RequestMagicLinkDto: {
+        type: 'object',
+        properties: {
+          email: {
+            type: 'string',
+            format: 'email',
+            description: 'User email address',
+            example: 'john@example.com',
+          },
+        },
+        required: ['email'],
+      },
+      LoginWithMagicLinkDto: {
+        type: 'object',
+        properties: {
+          token: {
+            type: 'string',
+            description: 'Magic login token received via email',
+            example: 'd3b07384d113edec49eaa6238ad5ff00',
+          },
+        },
+        required: ['token'],
+      },
+      ForgotPasswordDto: {
+        type: 'object',
+        properties: {
+          email: {
+            type: 'string',
+            format: 'email',
+            description: 'User email address',
+            example: 'john@example.com',
+          },
+        },
+        required: ['email'],
+      },
+      ResetPasswordDto: {
+        type: 'object',
+        properties: {
+          token: {
+            type: 'string',
+            description: 'Reset password token received via email',
+            example: 'd3b07384d113edec49eaa6238ad5ff00',
+          },
+          password: {
+            type: 'string',
+            format: 'password',
+            minLength: 8,
+            description: 'New password (minimum 8 characters)',
+            example: 'newSecurePassword123',
+          },
+        },
+        required: ['token', 'password'],
       },
     },
   },

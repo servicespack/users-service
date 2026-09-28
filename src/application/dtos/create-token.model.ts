@@ -4,5 +4,6 @@ export interface CreateTokenRequest {
 }
 
 export interface CreateTokenResponse {
-  readonly token: string
+  readonly accessToken: string
+  readonly refreshToken: string
 }

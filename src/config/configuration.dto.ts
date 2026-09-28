@@ -16,9 +16,17 @@ export class ConfigurationServersHttpDto {
   port!: string
 }
 
+export class ConfigurationServersGrpcDto {
+  @IsPort()
+  port!: string
+}
+
 export class ConfigurationServersDto {
   @Type(() => ConfigurationServersHttpDto)
   @ValidateNested() http!: ConfigurationServersHttpDto
+
+  @Type(() => ConfigurationServersGrpcDto)
+  @ValidateNested() grpc!: ConfigurationServersGrpcDto
 }
 
 export class ConfigurationAuthDto {
@@ -27,6 +35,20 @@ export class ConfigurationAuthDto {
 
   @IsString()
   jwtExpiration!: string
+
+  @IsString()
+  magicLinkExpiration!: string
+
+  @IsString()
+  magicLinkLoginUrl!: string
+
+  @IsString()
+  resetPasswordUrl!: string
+}
+
+export class ConfigurationNotificationsDto {
+  @IsString()
+  url!: string
 }
 
 export class ConfigurationDto {
@@ -41,4 +63,7 @@ export class ConfigurationDto {
 
   @Type(() => ConfigurationAuthDto)
   @ValidateNested() auth!: ConfigurationAuthDto
+
+  @Type(() => ConfigurationNotificationsDto)
+  @ValidateNested() notifications!: ConfigurationNotificationsDto
 }

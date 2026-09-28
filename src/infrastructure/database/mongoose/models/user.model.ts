@@ -8,6 +8,11 @@ export interface IUserDoc extends Document {
   isEmailVerified: boolean
   username: string
   password: string
+  roles: string[]
+  passwordResetToken?: string
+  passwordResetExpiresAt?: Date
+  magicLoginToken?: string
+  magicLoginExpiresAt?: Date
   createdAt: Date
   updatedAt: Date
 }
@@ -20,6 +25,11 @@ export const userSchema = new Schema<IUserDoc>(
     isEmailVerified: { type: Boolean, default: false },
     username: { type: String, required: true, unique: true, lowercase: true, trim: true },
     password: { type: String, required: true },
+    roles: { type: [String], default: ['user'] },
+    passwordResetToken: { type: String, default: null },
+    passwordResetExpiresAt: { type: Date, default: null },
+    magicLoginToken: { type: String, default: null },
+    magicLoginExpiresAt: { type: Date, default: null },
   },
   {
     timestamps: true,
@@ -30,6 +40,10 @@ export const userSchema = new Schema<IUserDoc>(
         delete ret.__v
         delete ret.password
         delete ret.emailVerificationKey
+        delete ret.passwordResetToken
+        delete ret.passwordResetExpiresAt
+        delete ret.magicLoginToken
+        delete ret.magicLoginExpiresAt
         delete ret.createdAt
         delete ret.updatedAt
       },
@@ -45,6 +59,8 @@ export const userSchema = new Schema<IUserDoc>(
 )
 
 userSchema.index({ name: 'text', email: 'text', username: 'text' })
+userSchema.index({ passwordResetToken: 1 }, { sparse: true })
+userSchema.index({ magicLoginToken: 1 }, { sparse: true })
 
 export const UserModel = mongoose.models.User || mongoose.model<IUserDoc>('User', userSchema)
 
@@ -59,6 +75,11 @@ export const userValidationRules = {
       isEmailVerified: { bsonType: 'bool' },
       username: { bsonType: 'string', description: 'must be a string and is required' },
       password: { bsonType: 'string', description: 'must be a string and is required' },
+      roles: { bsonType: 'array', items: { bsonType: 'string' } },
+      passwordResetToken: { bsonType: ['string', 'null'] },
+      passwordResetExpiresAt: { bsonType: ['date', 'null'] },
+      magicLoginToken: { bsonType: ['string', 'null'] },
+      magicLoginExpiresAt: { bsonType: ['date', 'null'] },
     },
   },
 }

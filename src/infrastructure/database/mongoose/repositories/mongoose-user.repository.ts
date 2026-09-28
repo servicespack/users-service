@@ -1,11 +1,11 @@
 import type { Model } from 'mongoose'
-import type { User } from '../../../../domain/entities/user.entity'
 import type {
   IUserRepository,
   ListUsersParams,
   PaginatedUsersResult,
 } from '../../../../domain/repositories/user.repository.interface'
 import type { IUserDoc } from '../models/user.model'
+import { User } from '../../../../domain/entities/user.entity'
 import { UserNotFoundError } from '../../../../domain/errors'
 import { UserMapper } from '../mappers/user.mapper'
 
@@ -23,12 +23,34 @@ export class MongooseUserRepository implements IUserRepository {
   }
 
   async findByUsername(username: string): Promise<User | null> {
-    const doc = await this.model.findOne({ username })
+    const doc = await this.model.findOne({ username: username.toLowerCase().trim() })
     return doc ? UserMapper.toDomain(doc) : null
   }
 
   async findByEmail(email: string): Promise<User | null> {
-    const doc = await this.model.findOne({ email })
+    const doc = await this.model.findOne({ email: email.toLowerCase().trim() })
+    return doc ? UserMapper.toDomain(doc) : null
+  }
+
+  async findByResetToken(passwordResetToken: string): Promise<User | null> {
+    const hashedToken = User.hashToken(passwordResetToken)
+    const doc = await this.model.findOne({ passwordResetToken: hashedToken })
+    return doc ? UserMapper.toDomain(doc) : null
+  }
+
+  async findByUsernameOrEmail(identifier: string): Promise<User | null> {
+    const doc = await this.model.findOne({
+      $or: [
+        { username: identifier.toLowerCase().trim() },
+        { email: identifier.toLowerCase().trim() },
+      ],
+    })
+    return doc ? UserMapper.toDomain(doc) : null
+  }
+
+  async findByMagicLoginToken(magicLoginToken: string): Promise<User | null> {
+    const hashedToken = User.hashToken(magicLoginToken)
+    const doc = await this.model.findOne({ magicLoginToken: hashedToken })
     return doc ? UserMapper.toDomain(doc) : null
   }
 
@@ -69,6 +91,11 @@ export class MongooseUserRepository implements IUserRepository {
     doc.password = user.password
     doc.isEmailVerified = user.isEmailVerified
     doc.emailVerificationKey = user.emailVerificationKey
+    doc.roles = user.roles
+    doc.passwordResetToken = user.passwordResetToken
+    doc.passwordResetExpiresAt = user.passwordResetExpiresAt
+    doc.magicLoginToken = user.magicLoginToken
+    doc.magicLoginExpiresAt = user.magicLoginExpiresAt
 
     await doc.save()
 
