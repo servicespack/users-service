@@ -1,8 +1,10 @@
 import { Type } from 'class-transformer'
 import {
   IsIn,
+  IsNumberString,
   IsPort,
   IsString,
+  Matches,
   ValidateNested,
 } from 'class-validator'
 
@@ -16,9 +18,17 @@ export class ConfigurationServersHttpDto {
   port!: string
 }
 
+export class ConfigurationServersGrpcDto {
+  @IsPort()
+  port!: string
+}
+
 export class ConfigurationServersDto {
   @Type(() => ConfigurationServersHttpDto)
   @ValidateNested() http!: ConfigurationServersHttpDto
+
+  @Type(() => ConfigurationServersGrpcDto)
+  @ValidateNested() grpc!: ConfigurationServersGrpcDto
 }
 
 export class ConfigurationAuthDto {
@@ -27,6 +37,21 @@ export class ConfigurationAuthDto {
 
   @IsString()
   jwtExpiration!: string
+
+  @IsNumberString()
+  @Matches(/^[1-9]\d*$/)
+  magicLinkExpiration!: string
+
+  @IsString()
+  magicLinkLoginUrl!: string
+
+  @IsString()
+  resetPasswordUrl!: string
+}
+
+export class ConfigurationNotificationsDto {
+  @IsString()
+  url!: string
 }
 
 export class ConfigurationDto {
@@ -41,4 +66,7 @@ export class ConfigurationDto {
 
   @Type(() => ConfigurationAuthDto)
   @ValidateNested() auth!: ConfigurationAuthDto
+
+  @Type(() => ConfigurationNotificationsDto)
+  @ValidateNested() notifications!: ConfigurationNotificationsDto
 }

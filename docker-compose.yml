@@ -1,0 +1,17 @@
+services:
+  mongodb:
+    image: mongo:7
+    container_name: users-service-mongodb
+    restart: unless-stopped
+    ports:
+      - '${MONGO_PORT:-27017}:27017'
+    volumes:
+      - mongodb_data:/data/db
+    healthcheck:
+      test: [CMD, mongosh, --eval, "db.adminCommand('ping')"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  mongodb_data:
