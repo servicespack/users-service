@@ -205,4 +205,41 @@ describe('tokens (e2e)', () => {
 
     sendEmailSpy.mockRestore()
   })
+
+  it('should fail refresh token when refresh token is invalid', async () => {
+    await supertest(server)
+      .post('/api/auth/refresh-token')
+      .send({ refreshToken: 'nonexistent-token' })
+      .expect(401)
+  })
+
+  it('should successfully logout and revoke refresh token', async () => {
+    const user = mockUser()
+
+    await supertest(server)
+      .post('/api/users')
+      .send(user)
+
+    const tokenRes = await supertest(server)
+      .post('/api/tokens')
+      .send({
+        username: user.username,
+        password: user.password,
+      })
+      .expect(201)
+
+    const refreshToken = tokenRes.body.RefreshToken
+
+    // Logout
+    await supertest(server)
+      .post('/api/auth/logout')
+      .send({ refreshToken })
+      .expect(204)
+
+    // Try to refresh with revoked token (should fail)
+    await supertest(server)
+      .post('/api/auth/refresh-token')
+      .send({ refreshToken })
+      .expect(401)
+  })
 })

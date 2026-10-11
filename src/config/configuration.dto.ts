@@ -3,8 +3,8 @@ import {
   IsIn,
   IsNumberString,
   IsPort,
-  IsPositive,
   IsString,
+  Matches,
   ValidateNested,
 } from 'class-validator'
 
@@ -39,7 +39,7 @@ export class ConfigurationAuthDto {
   jwtExpiration!: string
 
   @IsNumberString()
-  @IsPositive()
+  @Matches(/^[1-9]\d*$/)
   magicLinkExpiration!: string
 
   @IsString()

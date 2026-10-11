@@ -18,14 +18,12 @@ jobs:
     steps:
       - uses: actalog/check-ci@v1
       - uses: actions/checkout@v4
-      - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v4
+      - uses: docker/login-action@v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Build and push image
-        run: |
+      - run: |
           IMAGE_NAME="ghcr.io/$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')"
           VERSION=$(npm pkg get version | sed 's/"//g')
           docker image build -t "$IMAGE_NAME:latest" -t "$IMAGE_NAME:$VERSION" .
