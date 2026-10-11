@@ -17,15 +17,11 @@ export class LoginWithMagicLinkUseCase {
   ) {}
 
   async execute(request: LoginWithMagicLinkRequest): Promise<LoginWithMagicLinkResponse> {
-    const user = await this.userRepository.findByMagicLoginToken(request.token)
+    const user = await this.userRepository.consumeMagicLoginToken(request.token)
 
     if (user === null || !user.id) {
       throw new InvalidMagicLoginTokenError()
     }
-
-    user.authenticateWithMagicLogin(request.token)
-
-    await this.userRepository.update(user)
 
     const accessToken = this.tokenProvider.generate({
       iss: 'users-service',

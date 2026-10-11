@@ -3,5 +3,4 @@ export interface CreateUserRequest {
   readonly email: string
   readonly username: string
   readonly password: string
-  readonly roles?: readonly string[]
 }

@@ -1,7 +1,9 @@
 import { Type } from 'class-transformer'
 import {
   IsIn,
+  IsNumberString,
   IsPort,
+  IsPositive,
   IsString,
   ValidateNested,
 } from 'class-validator'
@@ -36,7 +38,8 @@ export class ConfigurationAuthDto {
   @IsString()
   jwtExpiration!: string
 
-  @IsString()
+  @IsNumberString()
+  @IsPositive()
   magicLinkExpiration!: string
 
   @IsString()

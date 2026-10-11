@@ -3,7 +3,7 @@ import type { IUserRepository } from '../../../domain/repositories/user.reposito
 import type { ITokenProvider } from '../../ports/token-provider.port'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { User } from '../../../domain/entities/user.entity'
-import { InvalidMagicLoginTokenError, MagicLoginTokenExpiredError } from '../../../domain/errors'
+import { InvalidMagicLoginTokenError } from '../../../domain/errors'
 import { LoginWithMagicLinkUseCase } from './login-with-magic-link.use-case'
 
 describe(LoginWithMagicLinkUseCase.name, () => {
@@ -21,6 +21,7 @@ describe(LoginWithMagicLinkUseCase.name, () => {
       findByResetToken: vi.fn(),
       findByUsernameOrEmail: vi.fn(),
       findByMagicLoginToken: vi.fn(),
+      consumeMagicLoginToken: vi.fn(),
       list: vi.fn(),
       update: vi.fn(),
       delete: vi.fn(),
@@ -30,6 +31,7 @@ describe(LoginWithMagicLinkUseCase.name, () => {
     }
     refreshTokenRepository = {
       create: vi.fn(),
+      consumeValid: vi.fn(),
       findByToken: vi.fn(),
       update: vi.fn(),
       revokeAllForUser: vi.fn(),
@@ -38,28 +40,19 @@ describe(LoginWithMagicLinkUseCase.name, () => {
   })
 
   it('should throw InvalidMagicLoginTokenError if token does not exist', async () => {
-    vi.mocked(userRepository.findByMagicLoginToken).mockResolvedValue(null)
+    vi.mocked(userRepository.consumeMagicLoginToken).mockResolvedValue(null)
 
     await expect(useCase.execute({
       token: 'unknown-token',
     })).rejects.toThrow(InvalidMagicLoginTokenError)
   })
 
-  it('should throw MagicLoginTokenExpiredError if magic login token has expired', async () => {
-    const user = new User({
-      id: 'u1',
-      name: 'John Doe',
-      email: 'john@example.com',
-      username: 'johndoe',
-      password: 'password',
-      magicLoginToken: User.hashToken('expired-token'),
-      magicLoginExpiresAt: new Date(Date.now() - 1000),
-    })
-    vi.mocked(userRepository.findByMagicLoginToken).mockResolvedValue(user)
+  it('should throw InvalidMagicLoginTokenError if magic login token has expired', async () => {
+    vi.mocked(userRepository.consumeMagicLoginToken).mockResolvedValue(null)
 
     await expect(useCase.execute({
       token: 'expired-token',
-    })).rejects.toThrow(MagicLoginTokenExpiredError)
+    })).rejects.toThrow(InvalidMagicLoginTokenError)
   })
 
   it('should generate tokens and clear magic login properties when token is valid', async () => {
@@ -72,13 +65,20 @@ describe(LoginWithMagicLinkUseCase.name, () => {
       magicLoginToken: User.hashToken('valid-token'),
       magicLoginExpiresAt: new Date(Date.now() + 15 * 60 * 1000),
     })
-    vi.mocked(userRepository.findByMagicLoginToken).mockResolvedValue(user)
+    const clearedUser = new User({
+      id: 'u1',
+      name: 'John Doe',
+      email: 'john@example.com',
+      username: 'johndoe',
+      password: 'password',
+    })
+    vi.mocked(userRepository.consumeMagicLoginToken).mockResolvedValue(clearedUser)
 
     const result = await useCase.execute({ token: 'valid-token' })
 
-    expect(user.magicLoginToken).toBeUndefined()
-    expect(user.magicLoginExpiresAt).toBeUndefined()
-    expect(userRepository.update).toHaveBeenCalledWith(user)
+    expect(user.magicLoginToken).toBe(User.hashToken('valid-token'))
+    expect(user.magicLoginExpiresAt).toBeDefined()
+    expect(userRepository.update).not.toHaveBeenCalled()
 
     expect(tokenProvider.generate).toHaveBeenCalledWith({
       iss: 'users-service',

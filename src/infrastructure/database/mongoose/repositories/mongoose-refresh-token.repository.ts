@@ -19,6 +19,21 @@ export class MongooseRefreshTokenRepository implements IRefreshTokenRepository {
     return RefreshTokenMapper.toDomain(doc)
   }
 
+  async consumeValid(token: string): Promise<RefreshToken | null> {
+    const doc = await this.model.findOneAndUpdate(
+      {
+        token,
+        isRevoked: false,
+        expiresAt: { $gt: new Date() },
+      },
+      { $set: { isRevoked: true } },
+      { new: true },
+    )
+    if (!doc)
+      return null
+    return RefreshTokenMapper.toDomain(doc)
+  }
+
   async update(refreshToken: RefreshToken): Promise<void> {
     if (!refreshToken.id) {
       throw new Error('Cannot update refresh token without ID')

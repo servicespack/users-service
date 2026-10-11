@@ -22,9 +22,9 @@ export class RefreshTokenUseCase {
   ) {}
 
   async execute(request: RefreshTokenRequest): Promise<RefreshTokenResponse> {
-    const existingToken = await this.refreshTokenRepository.findByToken(request.refreshToken)
+    const existingToken = await this.refreshTokenRepository.consumeValid(request.refreshToken)
 
-    if (!existingToken || !existingToken.isValid()) {
+    if (!existingToken) {
       throw new InvalidTokenError()
     }
 
@@ -34,10 +34,6 @@ export class RefreshTokenUseCase {
     if (this.userRepository && !user) {
       throw new InvalidTokenError()
     }
-
-    // Revoke the old token (Rolling Refresh Tokens)
-    existingToken.revoke()
-    await this.refreshTokenRepository.update(existingToken)
 
     const accessToken = this.tokenProvider.generate({
       iss: 'users-service',

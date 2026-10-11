@@ -19,6 +19,7 @@ export interface IUserRepository {
   findByResetToken: (token: string) => Promise<User | null>
   findByUsernameOrEmail: (identifier: string) => Promise<User | null>
   findByMagicLoginToken: (token: string) => Promise<User | null>
+  consumeMagicLoginToken: (token: string) => Promise<User | null>
   list: (params: ListUsersParams) => Promise<PaginatedUsersResult>
   update: (user: User) => Promise<User>
   delete: (id: string) => Promise<void>

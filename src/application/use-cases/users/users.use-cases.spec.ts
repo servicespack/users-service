@@ -28,6 +28,7 @@ describe('users Use Cases', () => {
       findByResetToken: vi.fn(),
       findByUsernameOrEmail: vi.fn(),
       findByMagicLoginToken: vi.fn(),
+      consumeMagicLoginToken: vi.fn(),
       list: vi.fn(),
       update: vi.fn(),
       delete: vi.fn(),
@@ -62,7 +63,7 @@ describe('users Use Cases', () => {
       expect(result).toBe(createdMockUser)
     })
 
-    it('should pass roles to user if provided', async () => {
+    it('should default roles to user when creating a new user', async () => {
       const useCase = new CreateUserUseCase(userRepository, passwordHasher)
       let savedUser: User | undefined
       vi.mocked(userRepository.create).mockImplementation(async (u) => {
@@ -71,14 +72,13 @@ describe('users Use Cases', () => {
       })
 
       await useCase.execute({
-        name: 'Admin User',
-        email: 'admin@example.com',
-        username: 'adminuser',
+        name: 'New User',
+        email: 'new@example.com',
+        username: 'newuser',
         password: 'raw-password',
-        roles: ['admin', 'user'],
       })
 
-      expect(savedUser?.roles).toEqual(['admin', 'user'])
+      expect(savedUser?.roles).toEqual(['user'])
     })
 
     it('should call notificationSender.sendEmail when notificationSender is provided', async () => {

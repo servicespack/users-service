@@ -16,6 +16,7 @@ describe(RequestMagicLinkUseCase.name, () => {
       findByResetToken: vi.fn(),
       findByUsernameOrEmail: vi.fn(),
       findByMagicLoginToken: vi.fn(),
+      consumeMagicLoginToken: vi.fn(),
       list: vi.fn(),
       update: vi.fn(),
       delete: vi.fn(),

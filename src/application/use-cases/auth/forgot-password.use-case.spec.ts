@@ -16,6 +16,7 @@ describe(ForgotPasswordUseCase.name, () => {
       findByResetToken: vi.fn(),
       findByUsernameOrEmail: vi.fn(),
       findByMagicLoginToken: vi.fn(),
+      consumeMagicLoginToken: vi.fn(),
       list: vi.fn(),
       update: vi.fn(),
       delete: vi.fn(),
@@ -28,7 +29,7 @@ describe(ForgotPasswordUseCase.name, () => {
 
     const result = await useCase.execute({ email: 'nonexistent@example.com' })
 
-    expect(result.resetToken).toBeUndefined()
+    expect(result).toEqual({})
     expect(userRepository.update).not.toHaveBeenCalled()
   })
 
@@ -46,8 +47,8 @@ describe(ForgotPasswordUseCase.name, () => {
     const result = await useCase.execute({ email: 'john@example.com' })
     const afterCall = Date.now()
 
-    expect(result.resetToken).toBeDefined()
-    expect(user.passwordResetToken).toBe(User.hashToken(result.resetToken!))
+    expect(result).toEqual({})
+    expect(user.passwordResetToken).toBeDefined()
     expect(user.passwordResetExpiresAt).toBeDefined()
 
     const expiryTime = user.passwordResetExpiresAt!.getTime()
@@ -76,7 +77,7 @@ describe(ForgotPasswordUseCase.name, () => {
 
     const result = await customUseCase.execute({ email: 'john@example.com' })
 
-    expect(result.resetToken).toBe('fixed-custom-token')
+    expect(result).toEqual({})
     expect(user.passwordResetToken).toBe(User.hashToken('fixed-custom-token'))
     expect(userRepository.update).toHaveBeenCalledWith(user)
   })

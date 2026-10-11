@@ -1,3 +1,4 @@
+import type { IRefreshTokenRepository } from '../../../domain/repositories/refresh-token.repository.interface'
 import type { IUserRepository } from '../../../domain/repositories/user.repository.interface'
 import type { IPasswordHasher } from '../../ports/password-hasher.port'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -11,6 +12,7 @@ import { ResetPasswordUseCase } from './reset-password.use-case'
 describe(ResetPasswordUseCase.name, () => {
   let userRepository: IUserRepository
   let passwordHasher: IPasswordHasher
+  let refreshTokenRepository: IRefreshTokenRepository
   let useCase: ResetPasswordUseCase
 
   beforeEach(() => {
@@ -22,6 +24,7 @@ describe(ResetPasswordUseCase.name, () => {
       findByResetToken: vi.fn(),
       findByUsernameOrEmail: vi.fn(),
       findByMagicLoginToken: vi.fn(),
+      consumeMagicLoginToken: vi.fn(),
       list: vi.fn(),
       update: vi.fn(),
       delete: vi.fn(),
@@ -30,7 +33,14 @@ describe(ResetPasswordUseCase.name, () => {
       hash: vi.fn().mockResolvedValue('new-hashed-password'),
       verify: vi.fn(),
     }
-    useCase = new ResetPasswordUseCase(userRepository, passwordHasher)
+    refreshTokenRepository = {
+      create: vi.fn(),
+      findByToken: vi.fn(),
+      consumeValid: vi.fn(),
+      update: vi.fn(),
+      revokeAllForUser: vi.fn(),
+    }
+    useCase = new ResetPasswordUseCase(userRepository, passwordHasher, refreshTokenRepository)
   })
 
   it('should throw InvalidResetTokenError if no user matches token', async () => {
@@ -60,7 +70,7 @@ describe(ResetPasswordUseCase.name, () => {
     })).rejects.toThrow(ResetTokenExpiredError)
   })
 
-  it('should hash new password, reset password and persist user when token is valid', async () => {
+  it('should hash new password, reset password, persist user and revoke all refresh tokens when token is valid', async () => {
     const user = new User({
       id: 'u1',
       name: 'John',
@@ -82,5 +92,6 @@ describe(ResetPasswordUseCase.name, () => {
     expect(user.passwordResetToken).toBeUndefined()
     expect(user.passwordResetExpiresAt).toBeUndefined()
     expect(userRepository.update).toHaveBeenCalledWith(user)
+    expect(refreshTokenRepository.revokeAllForUser).toHaveBeenCalledWith('u1')
   })
 })

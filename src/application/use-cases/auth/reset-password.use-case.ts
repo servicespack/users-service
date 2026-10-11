@@ -1,3 +1,4 @@
+import type { IRefreshTokenRepository } from '../../../domain/repositories/refresh-token.repository.interface'
 import type { IUserRepository } from '../../../domain/repositories/user.repository.interface'
 import type { ResetPasswordRequest } from '../../dtos/reset-password.model'
 import type { IPasswordHasher } from '../../ports/password-hasher.port'
@@ -7,6 +8,7 @@ export class ResetPasswordUseCase {
   constructor(
     private readonly userRepository: IUserRepository,
     private readonly passwordHasher: IPasswordHasher,
+    private readonly refreshTokenRepository: IRefreshTokenRepository,
   ) {}
 
   async execute(request: ResetPasswordRequest): Promise<void> {
@@ -20,5 +22,9 @@ export class ResetPasswordUseCase {
     user.resetPassword(request.token, hashedPassword)
 
     await this.userRepository.update(user)
+
+    if (user.id) {
+      await this.refreshTokenRepository.revokeAllForUser(user.id)
+    }
   }
 }

@@ -6,6 +6,7 @@ import {
   InvalidMagicLoginTokenError,
   InvalidPasswordError,
   InvalidSearchQueryError,
+  InvalidTokenError,
   MagicLoginTokenExpiredError,
   UserNotFoundError,
   WrongVerificationKeyError,
@@ -28,6 +29,9 @@ export function handleHttpError(error: unknown, response: Response): Response {
     return response.status(401).json({ error: error.message })
   }
   if (error instanceof WrongVerificationKeyError) {
+    return response.status(401).json({ error: error.message })
+  }
+  if (error instanceof InvalidTokenError) {
     return response.status(401).json({ error: error.message })
   }
   if (error instanceof EmailAlreadyVerifiedError) {

@@ -2,6 +2,7 @@ import type { IUserRepository } from '../../../domain/repositories/user.reposito
 import type { RequestMagicLinkRequest } from '../../dtos/request-magic-link.model'
 import type { INotificationSender } from '../../ports/notification-sender.port'
 import { randomUUID } from 'node:crypto'
+import { logger } from '../../../config/logger'
 
 export class RequestMagicLinkUseCase {
   private readonly notificationSender?: INotificationSender
@@ -40,17 +41,22 @@ export class RequestMagicLinkUseCase {
     await this.userRepository.update(user)
 
     if (this.notificationSender) {
-      await this.notificationSender.sendEmail({
-        to: user.email,
-        templateCode: 'magic-link',
-        variables: {
-          name: user.name,
-          token,
-          loginUrl: `${this.loginUrl}?token=${token}`,
-        },
-        subject: 'Your magic login link',
-        content: `You requested a magic login link. Your magic token is: ${token} (expires in ${expirationMinutes} minutes).`,
-      })
+      try {
+        await this.notificationSender.sendEmail({
+          to: user.email,
+          templateCode: 'magic-link',
+          variables: {
+            name: user.name,
+            token,
+            loginUrl: `${this.loginUrl}?token=${token}`,
+          },
+          subject: 'Your magic login link',
+          content: `You requested a magic login link. Your magic token is: ${token} (expires in ${expirationMinutes} minutes).`,
+        })
+      }
+      catch (error) {
+        logger.error({ error, userId: user.id }, 'Failed to send magic login email')
+      }
     }
   }
 }

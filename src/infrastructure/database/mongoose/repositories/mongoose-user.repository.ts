@@ -54,6 +54,19 @@ export class MongooseUserRepository implements IUserRepository {
     return doc ? UserMapper.toDomain(doc) : null
   }
 
+  async consumeMagicLoginToken(magicLoginToken: string): Promise<User | null> {
+    const hashedToken = User.hashToken(magicLoginToken)
+    const doc = await this.model.findOneAndUpdate(
+      {
+        magicLoginToken: hashedToken,
+        magicLoginExpiresAt: { $gt: new Date() },
+      },
+      { $unset: { magicLoginToken: '', magicLoginExpiresAt: '' } },
+      { new: true },
+    )
+    return doc ? UserMapper.toDomain(doc) : null
+  }
+
   async list(params: ListUsersParams): Promise<PaginatedUsersResult> {
     let query = {}
 

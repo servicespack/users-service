@@ -71,7 +71,7 @@ describe(UsersGrpcController.name, () => {
 
       expect(callback).toHaveBeenCalledWith({
         code: status.NOT_FOUND,
-        message: expect.any(String),
+        message: 'User not found',
       })
     })
 
@@ -169,7 +169,7 @@ describe(UsersGrpcController.name, () => {
 
       expect(callback).toHaveBeenCalledWith({
         code: status.INVALID_ARGUMENT,
-        message: expect.any(String),
+        message: 'Invalid search query',
       })
     })
 
@@ -183,7 +183,7 @@ describe(UsersGrpcController.name, () => {
 
       expect(callback).toHaveBeenCalledWith({
         code: status.INTERNAL,
-        message: 'Unexpected list error',
+        message: 'Internal server error',
       })
     })
 

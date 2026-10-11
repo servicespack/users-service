@@ -7,6 +7,7 @@ import {
   it,
 } from 'vitest'
 
+import { UserModel } from '../../src/infrastructure/database/mongoose/models/user.model'
 import { server } from '../../src/infrastructure/http/server'
 import { mockUser } from '../__mocks__/user'
 
@@ -38,18 +39,35 @@ describe('users (e2e)', () => {
     token = tokenBody.Authorization
   })
 
-  it('should create an user with custom roles', async () => {
-    const adminUser = {
-      ...mockUser(),
-      roles: ['admin'],
-    }
+  it('should create an user with custom roles (seeded via database)', async () => {
+    const user = mockUser()
 
     const { body } = await supertest(server)
       .post('/api/users')
-      .send(adminUser)
+      .send(user)
       .expect(201)
 
-    expect(body.roles).toEqual(['admin'])
+    expect(body.roles).toEqual(['user'])
+
+    await UserModel.updateOne(
+      { email: user.email },
+      { roles: ['admin'] },
+    )
+
+    const { body: tokenBody } = await supertest(server)
+      .post('/api/tokens')
+      .send({
+        username: user.username,
+        password: user.password,
+      })
+      .expect(201)
+
+    const { body: updatedBody } = await supertest(server)
+      .get(`/api/users/${body.id}`)
+      .set('Authorization', tokenBody.Authorization)
+      .expect(200)
+
+    expect(updatedBody.roles).toEqual(['admin'])
   })
 
   it('should not create user with duplicate email/username (409 Conflict)', async () => {

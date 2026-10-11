@@ -177,6 +177,16 @@ export const swaggerDocument = {
           204: {
             description: 'Successfully logged out.',
           },
+          401: {
+            description: 'Unauthorized: invalid or expired refresh token.',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ErrorResponse',
+                },
+              },
+            },
+          },
         },
       },
     },
@@ -928,14 +938,6 @@ export const swaggerDocument = {
             minLength: 8,
             description: 'Password (minimum 8 characters)',
             example: 'securePassword123',
-          },
-          roles: {
-            type: 'array',
-            items: {
-              type: 'string',
-            },
-            description: 'Optional roles assigned to the user',
-            example: ['user'],
           },
         },
         required: ['name', 'username', 'email', 'password'],

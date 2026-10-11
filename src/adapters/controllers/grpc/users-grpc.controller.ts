@@ -44,13 +44,13 @@ export class UsersGrpcController {
       if (error instanceof UserNotFoundError) {
         callback({
           code: status.NOT_FOUND,
-          message: error.message,
+          message: 'User not found',
         })
         return
       }
       callback({
         code: status.INTERNAL,
-        message: error instanceof Error ? error.message : 'Internal server error',
+        message: 'Internal server error',
       })
     }
   }
@@ -61,7 +61,9 @@ export class UsersGrpcController {
   ): Promise<void> => {
     try {
       const page = call.request.page && call.request.page > 0 ? Number(call.request.page) : 1
-      const size = call.request.size && call.request.size > 0 ? Number(call.request.size) : 10
+      const size = call.request.size && call.request.size > 0
+        ? Math.min(Number(call.request.size), 100)
+        : 10
       const search = call.request.search || undefined
 
       const result = await this.listUsersUseCase.execute({ page, size, search })
@@ -78,13 +80,13 @@ export class UsersGrpcController {
       if (error instanceof InvalidSearchQueryError) {
         callback({
           code: status.INVALID_ARGUMENT,
-          message: error.message,
+          message: 'Invalid search query',
         })
         return
       }
       callback({
         code: status.INTERNAL,
-        message: error instanceof Error ? error.message : 'Internal server error',
+        message: 'Internal server error',
       })
     }
   }

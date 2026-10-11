@@ -44,15 +44,17 @@ describe('tokens (e2e)', () => {
     expect(decoded.roles).toEqual(['user'])
   })
 
-  it('should create a token with custom roles when user has custom roles', async () => {
-    const user = {
-      ...mockUser(),
-      roles: ['admin'],
-    }
+  it('should create a token with custom roles when user has custom roles (seeded via database)', async () => {
+    const user = mockUser()
 
     await supertest(server)
       .post('/api/users')
       .send(user)
+
+    await UserModel.updateOne(
+      { email: user.email },
+      { roles: ['admin'] },
+    )
 
     const { body } = await supertest(server)
       .post('/api/tokens')
@@ -68,14 +70,16 @@ describe('tokens (e2e)', () => {
   })
 
   it('should refresh token and preserve user roles in the new access token', async () => {
-    const user = {
-      ...mockUser(),
-      roles: ['admin', 'manager'],
-    }
+    const user = mockUser()
 
     await supertest(server)
       .post('/api/users')
       .send(user)
+
+    await UserModel.updateOne(
+      { email: user.email },
+      { roles: ['admin', 'manager'] },
+    )
 
     const tokenRes = await supertest(server)
       .post('/api/tokens')

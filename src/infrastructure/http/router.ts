@@ -75,7 +75,7 @@ const forgotPasswordUseCase = new ForgotPasswordUseCase(
   undefined,
   configuration.auth.resetPasswordUrl,
 )
-const resetPasswordUseCase = new ResetPasswordUseCase(userRepository, passwordHasher)
+const resetPasswordUseCase = new ResetPasswordUseCase(userRepository, passwordHasher, refreshTokenRepository)
 const requestMagicLinkUseCase = new RequestMagicLinkUseCase(
   userRepository,
   notificationSender,

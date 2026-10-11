@@ -16,6 +16,7 @@ describe(RefreshTokenUseCase.name, () => {
   beforeEach(() => {
     refreshTokenRepository = {
       create: vi.fn(),
+      consumeValid: vi.fn(),
       findByToken: vi.fn(),
       update: vi.fn(),
       revokeAllForUser: vi.fn(),
@@ -28,6 +29,7 @@ describe(RefreshTokenUseCase.name, () => {
       findByResetToken: vi.fn(),
       findByUsernameOrEmail: vi.fn(),
       findByMagicLoginToken: vi.fn(),
+      consumeMagicLoginToken: vi.fn(),
       list: vi.fn(),
       update: vi.fn(),
       delete: vi.fn(),
@@ -39,7 +41,7 @@ describe(RefreshTokenUseCase.name, () => {
   })
 
   it('should throw InvalidTokenError if refresh token does not exist', async () => {
-    vi.mocked(refreshTokenRepository.findByToken).mockResolvedValue(null)
+    vi.mocked(refreshTokenRepository.consumeValid).mockResolvedValue(null)
 
     await expect(useCase.execute({
       refreshToken: 'non-existent',
@@ -47,33 +49,22 @@ describe(RefreshTokenUseCase.name, () => {
   })
 
   it('should throw InvalidTokenError if refresh token is expired or revoked', async () => {
-    const expiresAt = new Date()
-    expiresAt.setDate(expiresAt.getDate() - 1) // expired
-    const refreshToken = new RefreshToken({
-      id: 'token-id',
-      token: 'expired-token',
-      userId: 'user-id',
-      expiresAt,
-    })
-
-    vi.mocked(refreshTokenRepository.findByToken).mockResolvedValue(refreshToken)
+    vi.mocked(refreshTokenRepository.consumeValid).mockResolvedValue(null)
 
     await expect(useCase.execute({
-      refreshToken: 'expired-token',
+      refreshToken: 'expired-or-revoked-token',
     })).rejects.toThrow(InvalidTokenError)
   })
 
   it('should throw InvalidTokenError if user is not found when userRepository is provided', async () => {
-    const expiresAt = new Date()
-    expiresAt.setDate(expiresAt.getDate() + 7)
-    const refreshToken = new RefreshToken({
+    const existingToken = new RefreshToken({
       id: 'token-id',
       token: 'valid-token',
       userId: 'user-id',
-      expiresAt,
+      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
     })
 
-    vi.mocked(refreshTokenRepository.findByToken).mockResolvedValue(refreshToken)
+    vi.mocked(refreshTokenRepository.consumeValid).mockResolvedValue(existingToken)
     vi.mocked(userRepository.findById).mockResolvedValue(null)
 
     await expect(useCase.execute({
@@ -82,13 +73,11 @@ describe(RefreshTokenUseCase.name, () => {
   })
 
   it('should successfully refresh token with user roles', async () => {
-    const expiresAt = new Date()
-    expiresAt.setDate(expiresAt.getDate() + 7)
-    const refreshToken = new RefreshToken({
+    const existingToken = new RefreshToken({
       id: 'token-id',
       token: 'valid-token',
       userId: 'user-id',
-      expiresAt,
+      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
     })
 
     const user = new User({
@@ -100,16 +89,14 @@ describe(RefreshTokenUseCase.name, () => {
       roles: ['admin', 'user'],
     })
 
-    vi.mocked(refreshTokenRepository.findByToken).mockResolvedValue(refreshToken)
+    vi.mocked(refreshTokenRepository.consumeValid).mockResolvedValue(existingToken)
     vi.mocked(userRepository.findById).mockResolvedValue(user)
 
     const result = await useCase.execute({
       refreshToken: 'valid-token',
     })
 
-    expect(refreshTokenRepository.findByToken).toHaveBeenCalledWith('valid-token')
-    expect(refreshToken.isRevoked).toBe(true)
-    expect(refreshTokenRepository.update).toHaveBeenCalledWith(refreshToken)
+    expect(refreshTokenRepository.consumeValid).toHaveBeenCalledWith('valid-token')
     expect(tokenProvider.generate).toHaveBeenCalledWith({
       iss: 'users-service',
       sub: 'user-id',

@@ -5,6 +5,7 @@ import type {
 } from '../../dtos/forgot-password.model'
 import type { INotificationSender } from '../../ports/notification-sender.port'
 import { randomUUID } from 'node:crypto'
+import { logger } from '../../../config/logger'
 
 const FIFTEEN_MINUTES_MS = 15 * 60 * 1000
 
@@ -43,19 +44,24 @@ export class ForgotPasswordUseCase {
     await this.userRepository.update(user)
 
     if (this.notificationSender) {
-      await this.notificationSender.sendEmail({
-        to: user.email,
-        templateCode: 'reset-password',
-        variables: {
-          name: user.name,
-          token,
-          resetUrl: `${this.resetPasswordUrl}?token=${token}`,
-        },
-        subject: 'Reset your password',
-        content: `You requested a password reset. Your reset token is: ${token} (expires in 15 minutes).`,
-      })
+      try {
+        await this.notificationSender.sendEmail({
+          to: user.email,
+          templateCode: 'reset-password',
+          variables: {
+            name: user.name,
+            token,
+            resetUrl: `${this.resetPasswordUrl}?token=${token}`,
+          },
+          subject: 'Reset your password',
+          content: `You requested a password reset. Your reset token is: ${token} (expires in 15 minutes).`,
+        })
+      }
+      catch (error) {
+        logger.error({ error, userId: user.id }, 'Failed to send password reset email')
+      }
     }
 
-    return { resetToken: token }
+    return {}
   }
 }

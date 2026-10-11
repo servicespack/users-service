@@ -4,6 +4,7 @@ import type { INotificationSender } from '../../ports/notification-sender.port'
 import type { IPasswordHasher } from '../../ports/password-hasher.port'
 import crypto from 'node:crypto'
 import xss from 'xss'
+import { logger } from '../../../config/logger'
 import { User } from '../../../domain/entities/user.entity'
 
 export class CreateUserUseCase {
@@ -23,22 +24,27 @@ export class CreateUserUseCase {
       username: xss(request.username),
       password: hashedPassword,
       emailVerificationKey: User.hashToken(rawVerificationKey),
-      roles: request.roles ? [...request.roles] : undefined,
+      roles: ['user'],
     })
 
     const createdUser = await this.userRepository.create(user)
 
     if (this.notificationSender) {
-      await this.notificationSender.sendEmail({
-        to: createdUser.email,
-        templateCode: 'verify-email',
-        variables: {
-          name: createdUser.name,
-          verificationUrl: rawVerificationKey,
-        },
-        subject: 'Verify your email',
-        content: `Welcome to ServicesPack! Your verification key is: ${rawVerificationKey}`,
-      })
+      try {
+        await this.notificationSender.sendEmail({
+          to: createdUser.email,
+          templateCode: 'verify-email',
+          variables: {
+            name: createdUser.name,
+            verificationUrl: rawVerificationKey,
+          },
+          subject: 'Verify your email',
+          content: `Welcome to ServicesPack! Your verification key is: ${rawVerificationKey}`,
+        })
+      }
+      catch (error) {
+        logger.error({ error, userId: createdUser.id }, 'Failed to send verification email')
+      }
     }
 
     return createdUser

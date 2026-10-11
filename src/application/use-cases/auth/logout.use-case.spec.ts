@@ -12,6 +12,7 @@ describe(LogoutUseCase.name, () => {
     refreshTokenRepository = {
       create: vi.fn(),
       findByToken: vi.fn(),
+      consumeValid: vi.fn(),
       update: vi.fn(),
       revokeAllForUser: vi.fn(),
     }
